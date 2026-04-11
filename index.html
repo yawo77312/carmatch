@@ -1,471 +1,1081 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>카매치 | 원하는 조건은 빠르게 찾고, 구매는 더 편안하게</title>
-  <meta name="description" content="간단하게 찾아보고, 상담이 필요할 때만 편하게 문의할 수 있는 중고차 비교 사이트 카매치입니다." />
-  <style>
-    :root {
-      --blue: #2563eb;
-      --blue-dark: #1d4ed8;
-      --bg: #f5f8ff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --card: #ffffff;
-      --line: #dbe4f0;
-      --yellow: #fee500;
-      --shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-      color: var(--text);
-      background: linear-gradient(180deg, #f7faff 0%, #f4f7fb 100%);
-    }
-    a { color: inherit; text-decoration: none; }
-    button { font: inherit; cursor: pointer; }
-    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
-    .nav {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .nav-inner {
-      height: 84px; display: flex; align-items: center; justify-content: space-between;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; font-size: 42px; font-weight: 900; }
-    .brand-badge {
-      width: 52px; height: 52px; border-radius: 16px; background: var(--blue);
-      display: grid; place-items: center; color: white; font-size: 28px; box-shadow: 0 8px 20px rgba(37,99,235,0.25);
-    }
-    .menu { display: flex; gap: 40px; font-size: 22px; font-weight: 700; }
-    .menu a:hover { color: var(--blue); }
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  Menu,
+  MessageSquare,
+  PhoneCall,
+  Sparkles,
+  UserCheck,
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-    .hero {
-      min-height: calc(100vh - 84px);
-      padding: 48px 0 40px;
-      overflow: hidden;
-      position: relative;
-    }
-    .hero:before, .hero:after {
-      content: ""; position: absolute; border-radius: 999px; filter: blur(30px); opacity: 0.35;
-    }
-    .hero:before { width: 340px; height: 340px; right: 8%; top: 5%; background: #bfdbfe; }
-    .hero:after { width: 260px; height: 260px; left: 2%; bottom: 6%; background: #dbeafe; }
+const CONFIG = {
+  budgets: ["1,000만원 이하", "1,000~2,000만원", "2,000~3,000만원", "3,000만원 이상"],
+  carTypes: [
+    { id: "sedan", label: "세단", icon: "🚗", desc: "출퇴근과 승차감 중심" },
+    { id: "suv", label: "SUV", icon: "🚙", desc: "가족용과 적재공간 중심" },
+    { id: "compact", label: "경차", icon: "🚕", desc: "도심 주행과 유지비 중심" },
+    { id: "import", label: "수입차", icon: "🏎️", desc: "브랜드 만족도와 정비 이력 중심" },
+  ],
+  usages: ["출퇴근", "가족용", "장거리", "첫차", "업무용"],
+  priorities: ["무사고", "주행거리", "연식", "유지비", "브랜드", "옵션"],
+};
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1.03fr 0.97fr;
-      gap: 36px;
-      align-items: start;
-      position: relative;
-      z-index: 1;
-    }
+const budgetPages = [
+  {
+    slug: "budget-1000",
+    title: "1,000만원대 중고차 추천",
+    category: "예산별 추천",
+    intro: "가성비와 상태 확인이 가장 중요한 예산대입니다.",
+    checks: ["연식보다 실제 관리 상태", "주행거리와 소모품 이력", "보험료와 유지비 부담"],
+    body: [
+      "1,000만원대는 가격 매력은 크지만 차량 상태에 따라 만족도가 크게 갈릴 수 있습니다.",
+      "겉으로 보이는 옵션보다 정비 이력과 소모품 교체 상태를 먼저 보는 것이 좋습니다.",
+      "첫차라면 보험료와 향후 수리 부담까지 함께 고려하는 것이 안전합니다.",
+    ],
+  },
+  {
+    slug: "budget-2000",
+    title: "2,000만원대 중고차 추천",
+    category: "예산별 추천",
+    intro: "국산 세단과 SUV 선택 폭이 넓어지는 구간입니다.",
+    checks: ["차종별 유지비 차이", "무사고 여부와 실사용 이력", "옵션보다 상태 우선"],
+    body: [
+      "2,000만원대는 차종 선택 폭이 넓어 비교 기준을 먼저 세우는 것이 중요합니다.",
+      "국산 SUV와 세단 모두 괜찮은 선택지가 많지만, 주행거리와 실사용 이력을 함께 봐야 만족도가 올라갑니다.",
+      "옵션보다 상태가 좋고 관리가 잘 된 차량을 우선 검토하는 편이 안정적입니다.",
+    ],
+  },
+  {
+    slug: "budget-3000",
+    title: "3,000만원대 중고차 추천",
+    category: "예산별 추천",
+    intro: "연식과 옵션, 브랜드 선택 폭이 크게 넓어지는 구간입니다.",
+    checks: ["보증 가능 여부", "보험료와 세금 고려", "구매 후 감가와 유지비"],
+    body: [
+      "3,000만원대에서는 브랜드와 옵션 선택 폭이 넓어지는 만큼 유지비까지 같이 비교해야 합니다.",
+      "수입차를 고려한다면 구매가보다 정비 이력과 보증 가능 여부가 더 중요할 수 있습니다.",
+      "국산차를 본다면 연식과 옵션, 무사고 여부를 균형 있게 보는 것이 좋습니다.",
+    ],
+  },
+] as const;
 
-    .left {
-      padding-top: 72px;
-      min-height: 760px;
-      position: relative;
-    }
-    .headline {
-      font-size: 84px;
-      line-height: 1.06;
-      letter-spacing: -0.04em;
-      font-weight: 900;
-      margin: 0;
-    }
-    .blue { color: var(--blue); }
-    .sub {
-      margin-top: 28px;
-      font-size: 34px;
-      line-height: 1.45;
-      color: #475569;
-      font-weight: 800;
-    }
-    .car-bg {
-      position: absolute;
-      left: -80px;
-      bottom: 10px;
-      width: 86%;
-      height: 320px;
-      opacity: 0.34;
-      background:
-        radial-gradient(circle at 18% 65%, #94a3b8 0, #e2e8f0 26%, transparent 27%),
-        radial-gradient(circle at 76% 72%, #94a3b8 0, #e2e8f0 26%, transparent 27%),
-        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(226,232,240,0.55) 100%);
-      filter: blur(1px);
-      border-top-right-radius: 120px;
-      border-bottom-right-radius: 80px;
-    }
-    .guide-cta {
-      margin-top: 170px;
-      max-width: 560px;
-      background: rgba(255,255,255,0.96);
-      border: 4px solid var(--blue);
-      border-radius: 28px;
-      box-shadow: 0 18px 40px rgba(37,99,235,0.18);
-      padding: 24px 26px;
-      display: flex; align-items: center; justify-content: space-between; gap: 20px;
-      position: relative; z-index: 2;
-    }
-    .guide-cta-left { display: flex; align-items: center; gap: 18px; }
-    .guide-icon {
-      width: 58px; height: 58px; border-radius: 18px; background: #eff6ff;
-      display: grid; place-items: center; font-size: 30px;
-    }
-    .guide-title { font-size: 38px; font-weight: 900; letter-spacing: -0.03em; }
-    .guide-arrow { font-size: 46px; color: var(--blue); font-weight: 700; }
+const typePages = [
+  {
+    slug: "type-suv",
+    title: "중고 SUV 추천 기준",
+    category: "차종별 추천",
+    intro: "가족용, 적재공간, 시야 확보를 중요하게 본다면 SUV가 잘 맞을 수 있습니다.",
+    checks: ["하부 상태와 누유", "도심/장거리 사용 비중", "연비와 소모품 비용"],
+    body: [
+      "SUV는 실용성이 좋지만 차급에 따라 유지비와 승차감 차이가 큽니다.",
+      "도심 위주인지 장거리 위주인지에 따라 적합한 모델이 달라질 수 있습니다.",
+      "하부 상태와 사고 이력, 소모품 교체 이력을 함께 확인하는 것이 좋습니다.",
+    ],
+  },
+  {
+    slug: "type-sedan",
+    title: "중고 세단 추천 기준",
+    category: "차종별 추천",
+    intro: "출퇴근과 승차감, 유지비 균형을 중요하게 본다면 세단이 유리할 수 있습니다.",
+    checks: ["정숙성과 실내 컨디션", "보험료와 연비", "주행거리 대비 관리 상태"],
+    body: [
+      "세단은 출퇴근과 장거리 모두 무난하게 소화할 수 있어 꾸준히 선호되는 차종입니다.",
+      "연비와 승차감, 보험료를 함께 고려하면 실제 만족도가 높아질 수 있습니다.",
+      "주행거리 숫자만이 아니라 정비 이력과 실내 컨디션도 꼭 같이 봐야 합니다.",
+    ],
+  },
+  {
+    slug: "type-compact",
+    title: "중고 경차 추천 기준",
+    category: "차종별 추천",
+    intro: "도심 주행이 많고 유지비를 낮추고 싶다면 경차가 좋은 선택이 될 수 있습니다.",
+    checks: ["소모품 교체 이력", "도심 주행 적합성", "차량 크기와 실사용 편의성"],
+    body: [
+      "경차는 유지비 부담을 줄이기에 좋은 선택이지만, 실제 사용 환경을 먼저 생각해야 합니다.",
+      "도심 주행이 많고 주차 환경이 좁다면 경차의 장점이 크게 느껴질 수 있습니다.",
+      "반대로 장거리나 가족용 비중이 높다면 다른 차급이 더 적합할 수 있습니다.",
+    ],
+  },
+  {
+    slug: "type-import",
+    title: "중고 수입차 추천 기준",
+    category: "차종별 추천",
+    intro: "브랜드 만족도뿐 아니라 정비 이력과 유지비를 함께 검토해야 합니다.",
+    checks: ["정비 이력과 보증", "소모품 비용", "구매 후 예상 유지 부담"],
+    body: [
+      "수입차는 브랜드 만족도가 높지만 구매 이후 유지 부담이 변수로 작용할 수 있습니다.",
+      "정비 이력과 보증 여부, 소모품 비용을 반드시 같이 확인해야 합니다.",
+      "브랜드보다 관리 상태가 좋은 차량을 우선 보는 편이 장기적으로 유리합니다.",
+    ],
+  },
+] as const;
 
-    .chat-shell {
-      margin: 28px auto 0;
-      max-width: 620px;
-      border-radius: 34px;
-      overflow: hidden;
-      background: white;
-      box-shadow: var(--shadow);
-      border: 1px solid #e2e8f0;
-    }
-    .chat-top {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: white;
-      padding: 28px;
-      display: flex; justify-content: space-between; gap: 16px; align-items: center;
-    }
-    .chat-top-main { display: flex; gap: 16px; align-items: center; }
-    .bot-big {
-      width: 72px; height: 72px; border-radius: 999px; background: white; color: var(--blue);
-      display: grid; place-items: center; font-size: 34px; font-weight: 700;
-    }
-    .chat-title { font-size: 42px; font-weight: 900; letter-spacing: -0.04em; }
-    .chat-desc { margin-top: 6px; font-size: 22px; color: #dbeafe; }
-    .dots { font-size: 42px; color: #dbeafe; }
-    .chat-body { padding: 28px; background: #f8fafc; }
-    .bot-line { display: flex; gap: 14px; align-items: flex-start; }
-    .bot-small {
-      width: 56px; height: 56px; border-radius: 999px; background: #dbeafe; color: var(--blue);
-      display: grid; place-items: center; font-size: 28px; flex: 0 0 auto;
-    }
-    .bubble {
-      background: #f1f5f9; border-radius: 28px; padding: 24px 28px; box-shadow: 0 6px 12px rgba(15,23,42,0.04);
-      max-width: 430px;
-    }
-    .bubble p { margin: 0; font-size: 26px; line-height: 1.55; font-weight: 800; }
-    .prompt-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px;
-    }
-    .pill {
-      height: 82px; border-radius: 999px; border: 2px solid var(--blue); background: white;
-      color: var(--blue-dark); font-size: 28px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center;
-      transition: 0.2s ease;
-    }
-    .pill:hover { transform: translateY(-1px); background: #eff6ff; }
-    .input-row {
-      margin-top: 24px; background: white; border: 2px solid #e2e8f0; border-radius: 999px;
-      display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 22px;
-      box-shadow: 0 6px 12px rgba(15,23,42,0.04);
-    }
-    .input-row input {
-      border: none; outline: none; background: transparent; flex: 1;
-      font-size: 24px; color: #94a3b8;
-    }
-    .send {
-      width: 68px; height: 68px; border-radius: 999px; border: none;
-      background: var(--blue); color: white; font-size: 30px; font-weight: 700;
-      box-shadow: 0 10px 20px rgba(37,99,235,0.25);
-    }
+const guidePages = [
+  {
+    slug: "guide-first-car",
+    title: "사회초년생 첫차 고르는 기준",
+    category: "첫차 가이드",
+    intro: "첫차는 가격보다 유지비와 보험료, 고장 리스크까지 함께 보는 것이 중요합니다.",
+    body: [
+      "첫차를 고를 때는 차량 가격만 보면 안 됩니다. 보험료, 소모품 교체 비용, 예상 수리비까지 같이 봐야 실제 부담을 줄일 수 있습니다.",
+      "출퇴근이 많은지, 주차 환경이 어떤지, 가족과 함께 타는지에 따라 차종 선택이 달라질 수 있습니다.",
+      "무사고 여부와 주행거리도 중요하지만, 실제 관리 상태와 정비 이력이 더 중요할 수 있습니다.",
+    ],
+  },
+  {
+    slug: "guide-2000-suv",
+    title: "2,000만원대 SUV 추천 기준",
+    category: "예산별 추천",
+    intro: "2,000만원대는 SUV 선택 폭이 넓은 만큼 비교 기준을 먼저 세우는 것이 좋습니다.",
+    body: [
+      "국산 SUV는 연식, 주행거리, 옵션 차이가 커서 단순 가격 비교보다 상태 중심으로 봐야 합니다.",
+      "무사고 여부와 하부 상태, 소모품 교체 이력을 함께 보면 실제 만족도가 크게 달라질 수 있습니다.",
+      "주행거리 숫자만 보지 말고 실제 관리 상태와 사용 이력을 함께 비교하는 것이 좋습니다.",
+    ],
+  },
+  {
+    slug: "guide-accident-history",
+    title: "중고차 사고이력 확인 포인트",
+    category: "구매 팁",
+    intro: "무사고 문구만 믿기보다 실제로 무엇을 확인해야 하는지 아는 것이 중요합니다.",
+    body: [
+      "성능기록부와 보험 이력은 기본입니다. 하지만 외판 교환과 골격 손상은 구분해서 봐야 합니다.",
+      "사고 유무보다 수리 방식과 이후 관리 상태가 더 중요할 수 있습니다.",
+      "침수, 누유, 하부 상태까지 함께 확인해야 위험한 매물을 피할 가능성이 높아집니다.",
+    ],
+  },
+  {
+    slug: "guide-import-maintenance",
+    title: "수입 중고차 유지비 체크하기",
+    category: "수입차 팁",
+    intro: "수입차는 구매가보다 구매 후 유지 부담을 먼저 계산해야 합니다.",
+    body: [
+      "브랜드 만족도가 높아도 보증 가능 여부와 정비 이력에 따라 체감 만족도는 크게 달라질 수 있습니다.",
+      "소모품 비용과 정기 점검 비용을 미리 생각해야 예산 초과를 막을 수 있습니다.",
+      "정비 접근성과 부품 수급도 장기 보유 시 중요한 요소가 됩니다.",
+    ],
+  },
+  {
+    slug: "guide-mileage",
+    title: "주행거리 많은 차량, 꼭 피해야 할까",
+    category: "판단 기준",
+    intro: "주행거리가 많다고 무조건 나쁜 차량은 아닙니다. 관리 상태를 함께 봐야 합니다.",
+    body: [
+      "같은 연식이라도 어떤 환경에서 운행했는지에 따라 상태 차이가 큽니다.",
+      "소모품 교체 이력과 정비 이력이 투명한 차량은 숫자만으로 판단하기 어렵습니다.",
+      "반대로 주행거리가 짧아도 관리가 부족하면 더 큰 리스크가 있을 수 있습니다.",
+    ],
+  },
+  {
+    slug: "guide-family-suv",
+    title: "패밀리카로 SUV를 볼 때 중요한 점",
+    category: "차종별 추천",
+    intro: "가족용 차량은 단순 크기보다 승차감과 공간 활용성을 함께 봐야 합니다.",
+    body: [
+      "2열 공간과 적재공간, 승하차 편의성은 실제 만족도에 큰 영향을 줍니다.",
+      "아이와 함께 타는 경우 안전 옵션과 실내 컨디션도 중요합니다.",
+      "장거리 이용이 잦다면 승차감과 정숙성까지 함께 비교하는 것이 좋습니다.",
+    ],
+  },
+] as const;
 
-    .section { padding: 24px 0 72px; }
-    .cards {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
-    }
-    .card {
-      background: rgba(255,255,255,0.95); border-radius: 28px; padding: 30px;
-      box-shadow: 0 14px 30px rgba(148,163,184,0.18);
-      border: 1px solid #eef2f7;
-    }
-    .badge {
-      display: inline-block; padding: 8px 14px; border-radius: 999px;
-      border: 1px solid #bfdbfe; color: var(--blue-dark); font-size: 14px; font-weight: 700;
-      background: #f8fbff;
-    }
-    .card h3 { font-size: 30px; line-height: 1.35; margin: 16px 0 12px; letter-spacing: -0.03em; }
-    .card p { color: var(--muted); font-size: 18px; line-height: 1.7; margin: 0 0 18px; }
-    .card a { color: var(--blue); font-size: 18px; font-weight: 800; }
+type PageType = "home" | "consult" | "budget" | "type" | "guide";
+type CarTypeId = "sedan" | "suv" | "compact" | "import" | "";
 
-    .overlay {
-      position: fixed; inset: 0; background: rgba(15,23,42,0.4); display: none;
-      align-items: center; justify-content: center; padding: 24px; z-index: 30;
-    }
-    .overlay.show { display: flex; }
-    .modal {
-      width: min(720px, 100%); background: white; border-radius: 28px; box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .modal-top {
-      padding: 22px 24px; display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #e2e8f0; font-size: 26px; font-weight: 900;
-    }
-    .close { border: none; background: #eff6ff; color: var(--blue); width: 42px; height: 42px; border-radius: 12px; }
-    .modal-body { padding: 24px; }
-    .step { display: none; }
-    .step.active { display: block; }
-    .step h4 { margin: 0 0 10px; font-size: 34px; letter-spacing: -0.04em; }
-    .step p { margin: 0 0 20px; color: var(--muted); font-size: 18px; }
-    .choice-grid { display: grid; gap: 12px; }
-    .choice, .tag {
-      width: 100%; border: 1px solid #cbd5e1; background: white; border-radius: 18px;
-      padding: 18px 20px; font-size: 20px; font-weight: 700; text-align: left;
-    }
-    .choice:hover, .tag:hover { border-color: var(--blue); background: #f8fbff; }
-    .tag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .result-box {
-      background: #eff6ff; border: 1px solid #bfdbfe; padding: 22px; border-radius: 22px;
-    }
-    .result-box h5 { margin: 0 0 10px; font-size: 28px; }
-    .result-box p { margin: 0; color: #334155; }
-    .contact-buttons { display: grid; gap: 12px; margin-top: 18px; }
-    .kakao { background: var(--yellow); color: black; border: none; border-radius: 18px; padding: 16px; font-size: 20px; font-weight: 900; }
-    .call { background: white; color: var(--text); border: 1px solid #cbd5e1; border-radius: 18px; padding: 16px; font-size: 20px; font-weight: 900; }
-    .save { background: var(--blue); color: white; border: none; border-radius: 18px; padding: 16px; font-size: 20px; font-weight: 900; }
-    .tiny { margin-top: 14px; color: var(--muted); font-size: 14px; }
+type PageState = {
+  type: PageType;
+  slug?: string;
+  fromSource?: string;
+};
 
-    footer { padding: 30px 0 50px; color: #64748b; font-size: 15px; }
+type FormData = {
+  budget: string;
+  carType: CarTypeId;
+  usage: string;
+  priorities: string[];
+  name: string;
+  phone: string;
+};
 
-    @media (max-width: 1100px) {
-      .grid, .cards { grid-template-columns: 1fr; }
-      .left { min-height: auto; padding-top: 20px; }
-      .headline { font-size: 64px; }
-      .sub { font-size: 28px; }
-      .guide-cta { margin-top: 40px; }
-      .car-bg { display: none; }
-      .menu { display: none; }
-    }
-    @media (max-width: 700px) {
-      .wrap { padding: 0 18px; }
-      .brand { font-size: 30px; }
-      .brand-badge { width: 46px; height: 46px; }
-      .headline { font-size: 44px; }
-      .sub { font-size: 22px; }
-      .chat-title { font-size: 30px; }
-      .chat-desc { font-size: 16px; }
-      .bubble p { font-size: 20px; }
-      .prompt-grid, .tag-grid { grid-template-columns: 1fr; }
-      .pill { font-size: 22px; height: 72px; }
-      .guide-title { font-size: 28px; }
-      .guide-cta { padding: 18px; }
-      .input-row input { font-size: 18px; }
-      .cards .card h3 { font-size: 24px; }
-    }
-  </style>
-</head>
-<body>
-  <header class="nav">
-    <div class="wrap nav-inner">
-      <a href="#top" class="brand">
-        <span class="brand-badge">🚘</span>
-        <span>카매치</span>
-      </a>
-      <nav class="menu">
-        <a href="#top">홈</a>
-        <a href="#chat">검색하기</a>
-        <a href="#guides">구매 가이드</a>
-        <a href="#guides">이용 방법</a>
-        <a href="#guides">고객 후기</a>
-      </nav>
-    </div>
-  </header>
+type InquiryRecord = {
+  id: number;
+  name: string;
+  phone: string;
+  budget: string;
+  carType: string;
+  usage: string;
+  source: string;
+  createdAt: string;
+};
 
-  <main class="hero" id="top">
-    <div class="wrap grid">
-      <section class="left">
-        <h1 class="headline">
-          원하는 조건은<br>
-          <span class="blue">빠르게</span> 찾고,<br>
-          구매는 <span class="blue">더 편안하게</span>
-        </h1>
-        <div class="sub">
-          간단하게 찾아보고,<br>
-          상담이 필요할 때만 편하게 문의할 수 있습니다.
-        </div>
+type EntryLog = {
+  sessionId: string;
+  timestamp: string;
+  entryPage: string;
+  entryPath: string;
+  entrySource: string;
+  deviceType: string;
+};
 
-        <a href="#guides" class="guide-cta">
-          <div class="guide-cta-left">
-            <div class="guide-icon">💡</div>
-            <div class="guide-title">중고차 구매 요령</div>
+type PageViewLog = {
+  sessionId: string;
+  timestamp: string;
+  pageType: string;
+  pageSlug: string;
+  path: string;
+};
+
+type DwellTimeLog = {
+  sessionId: string;
+  pageSlug: string;
+  enteredAt: string;
+  leftAt: string;
+  durationSec: number;
+};
+
+type ConversionLog = {
+  sessionId: string;
+  timestamp: string;
+  conversionType: string;
+  sourcePage: string;
+  lastViewedPage: string;
+  path: string;
+  selectedBudget?: string;
+  selectedCarType?: string;
+};
+
+type ContentData = {
+  slug: string;
+  title: string;
+  category: string;
+  intro: string;
+  body: string[];
+  checks?: string[];
+};
+
+type LogBundle = {
+  entryLogs: EntryLog[];
+  pageViewLogs: PageViewLog[];
+  dwellTimeLogs: DwellTimeLog[];
+  conversionLogs: ConversionLog[];
+};
+
+function getPath(page: PageState) {
+  if (page.type === "home") return "/";
+  if (page.type === "consult") return "/consult/ai-car-match";
+  if (page.type === "budget") return `/budget/${page.slug || budgetPages[0].slug}`;
+  if (page.type === "type") return `/car-type/${page.slug || typePages[0].slug}`;
+  if (page.type === "guide") return `/guide/${page.slug || guidePages[0].slug}`;
+  return "/";
+}
+
+function getDeviceType() {
+  if (typeof window === "undefined") return "unknown";
+  return window.innerWidth < 768 ? "mobile" : "desktop";
+}
+
+function getRecommendationDetails(data: Pick<FormData, "budget" | "carType" | "usage" | "priorities">) {
+  const carTypeLabelMap: Record<Exclude<CarTypeId, "">, string> = {
+    sedan: "세단",
+    suv: "SUV",
+    compact: "경차",
+    import: "수입차",
+  };
+
+  const directionMap: Record<Exclude<CarTypeId, "">, string> = {
+    sedan: "연비와 승차감, 보험료 균형이 좋은 세단 중심으로 검토하는 방향",
+    suv: "연식과 주행거리 균형이 좋은 국산 SUV 중심으로 검토하는 방향",
+    compact: "유지비 부담이 낮고 도심 운전에 적합한 경차 중심으로 검토하는 방향",
+    import: "브랜드보다 정비 이력과 유지비를 함께 따져보는 수입차 중심 방향",
+  };
+
+  const title = `${data.budget}대 ${data.carType ? carTypeLabelMap[data.carType] : "차량"} 추천 방향`;
+  const direction = data.carType ? directionMap[data.carType] : "예산과 용도에 맞는 차량군을 검토하는 방향";
+
+  const cautionMap: Record<string, string> = {
+    "1,000만원 이하-suv": "이 예산대 SUV는 주행거리가 높을 가능성이 있어 소모품 교체 이력과 누유 여부를 꼭 확인하는 것이 좋습니다.",
+    "1,000~2,000만원-suv": "SUV 선택 폭은 넓어지지만 사고 이력과 하부 상태에 따라 실제 만족도가 크게 갈릴 수 있습니다.",
+    "2,000~3,000만원-sedan": "출퇴근용 세단은 연비뿐 아니라 정숙성, 보험료, 옵션 구성을 함께 보면 만족도가 높아질 수 있습니다.",
+    "2,000~3,000만원-suv": "국산 SUV 선택 폭이 넓은 구간이라 연식만 보기보다 실제 관리 상태와 옵션 균형을 함께 보는 것이 좋습니다.",
+    "3,000만원 이상-import": "수입차는 차량 가격보다 보증 가능 여부, 소모품 비용, 정비 이력을 함께 보는 것이 중요합니다.",
+  };
+
+  const caution =
+    cautionMap[`${data.budget}-${data.carType}`] ||
+    `${data.carType ? carTypeLabelMap[data.carType] : "차량"}를 고를 때는 구매가 외에도 사고 여부, 실제 관리 상태, 향후 유지비까지 함께 비교하는 것이 중요합니다.`;
+
+  const usageTip =
+    data.usage === "가족용"
+      ? "2열 공간과 적재공간, 승차감까지 확인하는 것이 좋습니다."
+      : data.usage === "장거리"
+      ? "정숙성, 시트 컨디션, 고속 안정성을 함께 체크하는 것이 좋습니다."
+      : data.usage === "첫차"
+      ? "유지비와 보험료, 수리 부담이 낮은 방향이 유리할 수 있습니다."
+      : data.usage === "업무용"
+      ? "연비와 내구성, 적재 편의성까지 같이 확인하는 것이 좋습니다."
+      : "실제 운행 동선에 맞는 차급을 선택하는 것이 중요합니다.";
+
+  const checklist = [
+    data.priorities.includes("무사고") ? "성능기록부와 사고 이력 함께 확인" : "정비 이력과 소모품 상태 확인",
+    data.priorities.includes("주행거리") ? "동일 연식 대비 주행거리 비교" : "실주행 패턴과 사용 용도 비교",
+    data.priorities.includes("유지비") ? "보험료·연비·소모품 비용 체크" : "구매가 외 추가 비용 체크",
+    usageTip,
+  ];
+
+  const highlight = data.priorities.includes("유지비")
+    ? "유지비 절감이 중요한 조건으로 반영되었습니다. 보험료와 소모품 비용이 낮은 방향을 우선 검토합니다."
+    : data.priorities.includes("무사고")
+    ? "무사고와 관리 상태를 가장 우선 순위로 두고 선별하는 방향입니다."
+    : "실제 관리 상태와 사용 목적에 맞는 차량을 우선 검토하는 방향입니다.";
+
+  const defaultCars = [
+    { name: "조건 맞춤 후보 1", meta: "실매물 연동 전 예시 카드", price: "상담 후 구체 안내" },
+    { name: "조건 맞춤 후보 2", meta: "예산과 차종 기준으로 추려진 방향", price: "상담 후 구체 안내" },
+    { name: "조건 맞춤 후보 3", meta: "상태와 유지비 기준 비교", price: "상담 후 구체 안내" },
+  ];
+
+  return {
+    title,
+    direction: `${data.budget} 예산에서 ${data.usage} 용도라면 ${direction}이 적합합니다.`,
+    tip: `${caution} ${data.priorities.length ? `특히 ${data.priorities.slice(0, 2).join(", ")} 기준을 우선해서 보는 것이 좋습니다.` : ""}`,
+    checklist,
+    highlight,
+    sampleCars: defaultCars,
+  };
+}
+
+function TopNav({ onNavigate }: { onNavigate: (page: PageState) => void }) {
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
+        <button onClick={() => onNavigate({ type: "home" })} className="flex items-center gap-3 font-black tracking-tight text-slate-900">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
+            <span className="text-xl">🚘</span>
           </div>
-          <div class="guide-arrow">›</div>
-        </a>
-        <div class="car-bg"></div>
-      </section>
+          <span className="text-[24px] leading-none sm:text-[32px]">카매치</span>
+        </button>
 
-      <section class="chat-shell" id="chat">
-        <div class="chat-top">
-          <div class="chat-top-main">
-            <div class="bot-big">🤖</div>
-            <div>
-              <div class="chat-title">카매치 AI</div>
-              <div class="chat-desc">원하는 조건을 말씀해주시면 맞는 차량을 찾아드릴게요.</div>
-            </div>
-          </div>
-          <div class="dots">⋮</div>
-        </div>
-        <div class="chat-body">
-          <div class="bot-line">
-            <div class="bot-small">🤖</div>
-            <div class="bubble">
-              <p>안녕하세요! 👋<br>어떤 차를 찾고 계신지 말씀해주시면<br>조건에 맞게 추천해드릴게요.</p>
-            </div>
-          </div>
+        <nav className="hidden items-center gap-10 text-lg font-semibold text-slate-800 md:flex">
+          <button onClick={() => onNavigate({ type: "home" })} className="transition-colors hover:text-blue-600">홈</button>
+          <button onClick={() => onNavigate({ type: "consult" })} className="transition-colors hover:text-blue-600">검색하기</button>
+          <button onClick={() => onNavigate({ type: "guide", slug: guidePages[0].slug })} className="transition-colors hover:text-blue-600">구매 가이드</button>
+          <button onClick={() => onNavigate({ type: "guide", slug: guidePages[2].slug })} className="transition-colors hover:text-blue-600">이용 방법</button>
+          <button onClick={() => onNavigate({ type: "guide", slug: guidePages[5].slug })} className="transition-colors hover:text-blue-600">고객 후기</button>
+        </nav>
 
-          <div class="prompt-grid">
-            <button class="pill open-chat">예산으로 찾기</button>
-            <button class="pill open-chat">첫차 추천</button>
-            <button class="pill open-chat">SUV 찾기</button>
-            <button class="pill open-chat">수입차 비교</button>
-          </div>
-
-          <div class="input-row">
-            <input value="예) 2천만원 예산의 SUV 찾아줘" readonly>
-            <button class="send open-chat">↗</button>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <section class="section" id="guides">
-    <div class="wrap cards">
-      <article class="card">
-        <span class="badge">첫차 가이드</span>
-        <h3>사회초년생 첫차 고르는 기준</h3>
-        <p>첫차는 가격보다 유지비와 보험료, 고장 리스크까지 함께 보는 것이 중요합니다.</p>
-        <a href="#chat">더 읽어보기 →</a>
-      </article>
-      <article class="card">
-        <span class="badge">예산별 추천</span>
-        <h3>2,000만원대 SUV 추천 기준</h3>
-        <p>2,000만원대는 SUV 선택 폭이 넓은 만큼 비교 기준을 먼저 세우는 것이 좋습니다.</p>
-        <a href="#chat">더 읽어보기 →</a>
-      </article>
-      <article class="card">
-        <span class="badge">구매 팁</span>
-        <h3>중고차 사고이력 확인 포인트</h3>
-        <p>무사고 문구만 믿기보다 실제로 무엇을 확인해야 하는지 아는 것이 중요합니다.</p>
-        <a href="#chat">더 읽어보기 →</a>
-      </article>
-    </div>
-  </section>
-
-  <footer>
-    <div class="wrap">© 2026 카매치. 원하는 조건은 빠르게 찾고, 구매는 더 편안하게.</div>
-  </footer>
-
-  <div class="overlay" id="chatModal">
-    <div class="modal">
-      <div class="modal-top">
-        <span>카매치 상담 시작</span>
-        <button class="close" id="closeModal">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="step active" data-step="1">
-          <h4>생각하시는 예산을 선택해 주세요</h4>
-          <p>예산에 맞춰 차량 방향과 체크 포인트가 달라집니다.</p>
-          <div class="choice-grid">
-            <button class="choice budget" data-value="1,000만원 이하">1,000만원 이하</button>
-            <button class="choice budget" data-value="1,000~2,000만원">1,000~2,000만원</button>
-            <button class="choice budget" data-value="2,000~3,000만원">2,000~3,000만원</button>
-            <button class="choice budget" data-value="3,000만원 이상">3,000만원 이상</button>
-          </div>
-        </div>
-
-        <div class="step" data-step="2">
-          <h4>원하시는 차종을 골라주세요</h4>
-          <p>차종에 따라 추천 기준과 체크 포인트가 달라집니다.</p>
-          <div class="choice-grid">
-            <button class="choice type" data-value="세단">세단</button>
-            <button class="choice type" data-value="SUV">SUV</button>
-            <button class="choice type" data-value="경차">경차</button>
-            <button class="choice type" data-value="수입차">수입차</button>
-          </div>
-        </div>
-
-        <div class="step" data-step="3">
-          <h4>분석이 완료되었습니다</h4>
-          <p>조건에 맞는 방향을 먼저 확인하고, 필요할 때만 상담으로 이어가면 됩니다.</p>
-          <div class="result-box">
-            <h5 id="resultTitle">맞춤 추천 방향</h5>
-            <p id="resultText">예산과 차종을 기반으로 우선 검토 방향을 정리했습니다.</p>
-          </div>
-          <div class="contact-buttons">
-            <button class="save" id="saveBtn">문의 저장 테스트</button>
-            <button class="kakao" id="kakaoBtn">카카오톡으로 결과 받기</button>
-            <button class="call" id="callBtn">전화 상담 예약하기</button>
-          </div>
-          <div class="tiny" id="logStatus">버튼 클릭 시 브라우저에 테스트 로그가 저장됩니다.</div>
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-2xl"><Menu className="h-4 w-4" /></Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px]">
+              <div className="mt-6 grid gap-3">
+                <Button variant="outline" className="justify-start rounded-2xl" onClick={() => onNavigate({ type: "home" })}>홈</Button>
+                <Button variant="outline" className="justify-start rounded-2xl" onClick={() => onNavigate({ type: "consult" })}>검색하기</Button>
+                <Button variant="outline" className="justify-start rounded-2xl" onClick={() => onNavigate({ type: "guide", slug: guidePages[0].slug })}>구매 가이드</Button>
+                <Button variant="outline" className="justify-start rounded-2xl" onClick={() => onNavigate({ type: "guide", slug: guidePages[2].slug })}>이용 방법</Button>
+                <Button variant="outline" className="justify-start rounded-2xl" onClick={() => onNavigate({ type: "guide", slug: guidePages[5].slug })}>고객 후기</Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
+    </header>
+  );
+}
+
+function PageShell({ eyebrow, title, description, breadcrumb, children }: { eyebrow: string; title: string; description: string; breadcrumb: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-5xl space-y-8">
+      <div className="overflow-hidden rounded-[36px] border border-border/60 bg-gradient-to-br from-primary/10 via-background to-background shadow-sm">
+        <div className="space-y-4 px-6 py-8 sm:px-8 sm:py-10">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <Badge variant="secondary" className="rounded-full px-4 py-1">{eyebrow}</Badge>
+            <span className="rounded-full border px-3 py-1 font-mono text-xs">{breadcrumb}</span>
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl">{title}</h1>
+            <p className="max-w-3xl text-lg leading-8 text-muted-foreground">{description}</p>
+          </div>
+        </div>
+      </div>
+      {children}
     </div>
-  </div>
+  );
+}
 
-  <script>
-    const modal = document.getElementById('chatModal');
-    const closeModal = document.getElementById('closeModal');
-    const openButtons = document.querySelectorAll('.open-chat');
-    const steps = document.querySelectorAll('.step');
-    const budgetButtons = document.querySelectorAll('.budget');
-    const typeButtons = document.querySelectorAll('.type');
-    const resultTitle = document.getElementById('resultTitle');
-    const resultText = document.getElementById('resultText');
-    const logStatus = document.getElementById('logStatus');
+function HomePage({ onNavigate }: { onNavigate: (page: PageState) => void }) {
+  const quickPrompts = ["예산으로 찾기", "첫차 추천", "SUV 찾기", "수입차 비교"];
 
-    const state = { budget: '', type: '' };
+  return (
+    <div className="overflow-hidden rounded-[36px] bg-[linear-gradient(180deg,#f7faff_0%,#f5f7fb_100%)]">
+      <section className="relative min-h-[auto] px-4 py-6 sm:px-8 sm:py-10 lg:min-h-[860px] lg:px-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_30%)]" />
 
-    function showStep(n) {
-      steps.forEach(step => step.classList.toggle('active', step.dataset.step === String(n)));
-    }
+        <div className="relative grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="pt-2 sm:pt-6 lg:pt-24">
+            <div className="max-w-2xl space-y-5 sm:space-y-8">
+              <h1 className="text-[38px] font-black leading-[1.12] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+                원하는 조건은
+                <br />
+                <span className="text-blue-600">빠르게</span> 찾고,
+                <br />
+                구매는 <span className="text-blue-600">더 편안하게</span>
+              </h1>
 
-    function openModal() {
-      modal.classList.add('show');
-      showStep(1);
-    }
+              <p className="max-w-xl text-lg font-semibold leading-relaxed text-slate-600 sm:text-3xl">
+                간단하게 찾아보고,
+                <br />
+                상담이 필요할 때만 편하게 문의할 수 있습니다.
+              </p>
+            </div>
 
-    function addLog(type) {
-      const logs = JSON.parse(localStorage.getItem('carmatch_logs') || '[]');
-      logs.unshift({
-        type,
-        budget: state.budget,
-        carType: state.type,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem('carmatch_logs', JSON.stringify(logs.slice(0, 50)));
-      logStatus.textContent = `최근 로그: ${type} / ${new Date().toLocaleString('ko-KR')}`;
-    }
+            <div className="mt-8 max-w-[520px] rounded-[24px] border-[3px] border-blue-600 bg-white/95 p-4 shadow-[0_18px_40px_rgba(37,99,235,0.18)] sm:mt-16 sm:rounded-[28px] sm:border-4 sm:p-5">
+              <button
+                onClick={() => onNavigate({ type: "guide", slug: guidePages[0].slug })}
+                className="flex w-full items-center justify-between gap-4 text-left"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl sm:h-14 sm:w-14 sm:text-3xl">💡</div>
+                  <div>
+                    <p className="text-[22px] font-black tracking-tight text-slate-900 sm:text-[32px]">중고차 구매 요령</p>
+                  </div>
+                </div>
+                <span className="text-3xl font-bold text-blue-600 sm:text-4xl">›</span>
+              </button>
+            </div>
+          </div>
 
-    openButtons.forEach(btn => btn.addEventListener('click', openModal));
-    closeModal.addEventListener('click', () => modal.classList.remove('show'));
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+          <div className="relative pt-2 lg:pt-16">
+            <div className="mx-auto max-w-[620px] overflow-hidden rounded-[24px] bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/80 sm:rounded-[34px] sm:shadow-[0_30px_70px_rgba(15,23,42,0.16)]">
+              <div className="flex items-center justify-between bg-blue-600 px-4 py-4 text-white sm:px-7 sm:py-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl sm:h-16 sm:w-16 sm:text-3xl">🤖</div>
+                  <div>
+                    <p className="text-2xl font-black tracking-tight sm:text-4xl">카매치 AI</p>
+                    <p className="mt-1 text-sm text-blue-100 sm:text-lg">원하는 조건을 말씀해주시면 맞는 차량을 찾아드릴게요.</p>
+                  </div>
+                </div>
+                <div className="text-2xl leading-none text-blue-100 sm:text-4xl">⋮</div>
+              </div>
 
-    budgetButtons.forEach(btn => btn.addEventListener('click', () => {
-      state.budget = btn.dataset.value;
-      addLog('select_budget');
-      showStep(2);
+              <div className="space-y-5 bg-[#f8fafc] p-4 sm:space-y-7 sm:p-7">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl sm:h-14 sm:w-14 sm:text-2xl">🤖</div>
+                  <div className="max-w-[420px] rounded-[22px] bg-slate-100 px-4 py-4 text-slate-800 shadow-sm sm:rounded-[28px] sm:px-7 sm:py-6">
+                    <p className="text-base font-bold leading-relaxed sm:text-2xl">
+                      안녕하세요! 👋<br />
+                      어떤 차를 찾고 계신지 말씀해주시면
+                      조건에 맞게 추천해드릴게요.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {quickPrompts.map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => onNavigate({ type: "consult" })}
+                      className="flex h-14 items-center justify-center rounded-full border-2 border-blue-500 bg-white px-3 text-base font-bold text-blue-700 transition hover:bg-blue-50 sm:h-20 sm:px-4 sm:text-2xl"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3 rounded-full border-2 border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4">
+                  <input
+                    readOnly
+                    value="예) 2천만원 예산의 SUV 찾아줘"
+                    className="h-10 flex-1 bg-transparent text-sm text-slate-400 outline-none sm:h-12 sm:text-xl"
+                  />
+                  <button
+                    onClick={() => onNavigate({ type: "consult" })}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-xl text-white shadow-lg transition hover:scale-105 sm:h-16 sm:w-16 sm:text-3xl"
+                  >
+                    ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute bottom-0 left-0 hidden h-[360px] w-[58%] rounded-tr-[120px] lg:block bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(226,232,240,0.3)_20%,rgba(148,163,184,0.22)_100%)]" />
+      </section>
+
+      <section className="px-4 pb-10 sm:px-8 sm:pb-16 lg:px-10">
+        <div className="grid gap-6 md:grid-cols-3">
+          {guidePages.slice(0, 3).map((g) => (
+            <Card key={g.slug} className="group cursor-pointer overflow-hidden rounded-[28px] border-none bg-white/90 shadow-lg shadow-slate-200/70 transition-all hover:-translate-y-1" onClick={() => onNavigate({ type: "guide", slug: g.slug })}>
+              <CardHeader className="p-8">
+                <Badge variant="outline" className="mb-4 w-fit border-blue-200 text-blue-700">{g.category}</Badge>
+                <CardTitle className="text-2xl leading-snug transition-colors group-hover:text-blue-600">{g.title}</CardTitle>
+                <CardDescription className="line-clamp-2 pt-1 text-base">{g.intro}</CardDescription>
+              </CardHeader>
+              <div className="flex items-center gap-1 px-8 pb-8 text-base font-bold text-blue-600">더 읽어보기 <ArrowRight className="h-5 w-5" /></div>
+            </Card>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ContentPage({
+  pageData,
+  onNavigate,
+  path,
+}: {
+  pageData: ContentData;
+  onNavigate: (p: PageState) => void;
+  path: string;
+}) {
+  return (
+    <PageShell eyebrow={pageData.category} title={pageData.title} description={pageData.intro} breadcrumb={path}>
+      {pageData.checks ? (
+        <Card className="mb-8 overflow-hidden rounded-[30px] border-border/60 shadow-sm">
+          <CardHeader><CardTitle>이 페이지에서 먼저 볼 점</CardTitle></CardHeader>
+          <CardContent className="grid gap-3">
+            {pageData.checks.map((item) => (
+              <div key={item} className="rounded-2xl border p-4 text-sm text-muted-foreground">{item}</div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card className="mb-8 overflow-hidden rounded-[30px] border-border/60 shadow-sm">
+        <CardContent className="space-y-6 p-8 leading-8 text-muted-foreground">
+          {pageData.body.map((p, i) => <p key={i}>{p}</p>)}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[32px] border-primary/20 bg-gradient-to-br from-primary/10 to-transparent shadow-md">
+        <CardContent className="space-y-6 p-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
+            <Sparkles className="h-8 w-8" />
+          </div>
+          <h3 className="text-2xl font-bold">“{pageData.title}” 내용을 보셨나요?</h3>
+          <p className="mx-auto max-w-md text-muted-foreground">
+            이 가이드의 기준을 적용해 {pageData.category} 관점으로
+            <br />
+            현재 조건에 맞는 상담 흐름을 바로 시작할 수 있습니다.
+          </p>
+          <Button size="lg" className="h-14 rounded-2xl px-8 text-lg shadow-lg shadow-primary/20" onClick={() => onNavigate({ type: "consult", fromSource: pageData.title })}>
+            이 기준으로 1:1 맞춤 상담 시작
+          </Button>
+        </CardContent>
+      </Card>
+    </PageShell>
+  );
+}
+
+function LogSummaryCard({ logs }: { logs: LogBundle }) {
+  return (
+    <Card className="rounded-[30px] border border-border/60 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-lg">로그 설계 요약</CardTitle>
+        <CardDescription>어디서 들어왔고, 무엇을 봤고, 얼마나 머물렀고, 전환됐는지 추적</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <div className="rounded-2xl border p-3">entry_log: 최초 진입 경로와 디바이스 ({logs.entryLogs.length})</div>
+        <div className="rounded-2xl border p-3">page_view_log: 본 페이지와 경로 ({logs.pageViewLogs.length})</div>
+        <div className="rounded-2xl border p-3">dwell_time_log: 페이지별 체류시간 ({logs.dwellTimeLogs.length})</div>
+        <div className="rounded-2xl border p-3">conversion_log: 예산/차종 선택, 문의 저장, 카카오/전화 클릭 ({logs.conversionLogs.length})</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ConsultPage({
+  fromSource,
+  inquiryLogs,
+  logs,
+  sessionId,
+  currentPath,
+  onSaveInquiry,
+  onAddConversionLog,
+}: {
+  fromSource?: string;
+  inquiryLogs: InquiryRecord[];
+  logs: LogBundle;
+  sessionId: string;
+  currentPath: string;
+  onSaveInquiry: (r: InquiryRecord) => void;
+  onAddConversionLog: (r: ConversionLog) => void;
+}) {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>({
+    budget: "",
+    carType: "",
+    usage: "출퇴근",
+    priorities: ["무사고"],
+    name: "",
+    phone: "",
+  });
+  const [saveMessage, setSaveMessage] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+
+  const aiMessage = useMemo(() => {
+    if (fromSource) return `“${fromSource}” 가이드를 확인하셨군요. 그 기준에 맞춰 가장 꼼꼼하게 방향을 정리해드릴게요.`;
+    return "안녕하세요. 어떤 조건의 차량을 찾으시나요? 예산부터 알려주시면 분석을 시작합니다.";
+  }, [fromSource]);
+
+  const recommendation = useMemo(() => {
+    if (!formData.budget || !formData.carType) return null;
+    return getRecommendationDetails({
+      budget: formData.budget,
+      carType: formData.carType,
+      usage: formData.usage,
+      priorities: formData.priorities,
+    });
+  }, [formData.budget, formData.carType, formData.usage, formData.priorities]);
+
+  const selectedCarType = CONFIG.carTypes.find((item) => item.id === formData.carType);
+
+  const pushConversion = (conversionType: string, nextBudget?: string, nextCarType?: string) => {
+    onAddConversionLog({
+      sessionId,
+      timestamp: new Date().toISOString(),
+      conversionType,
+      sourcePage: fromSource || "direct",
+      lastViewedPage: currentPath,
+      path: currentPath,
+      selectedBudget: nextBudget ?? formData.budget,
+      selectedCarType: nextCarType ?? selectedCarType?.label,
+    });
+  };
+
+  const togglePriority = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      priorities: prev.priorities.includes(value)
+        ? prev.priorities.filter((item) => item !== value)
+        : [...prev.priorities, value],
     }));
+    pushConversion(`select_priority:${value}`);
+  };
 
-    typeButtons.forEach(btn => btn.addEventListener('click', () => {
-      state.type = btn.dataset.value;
-      addLog('select_car_type');
-      resultTitle.textContent = `${state.budget} / ${state.type} 추천 방향`;
-      resultText.textContent = `${state.budget} 예산에서 ${state.type}를 찾는다면, 상태와 유지비를 함께 비교하는 방향이 좋습니다. 실제 상담 전까지는 부담 없이 비교만 해보셔도 됩니다.`;
-      showStep(3);
-    }));
+  const handleSaveInquiry = () => {
+    if (!formData.name.trim() || !formData.phone.trim() || !selectedCarType?.label) {
+      setSaveMessage("이름과 연락처를 입력하면 테스트용 문의 저장이 가능합니다.");
+      setIsSaved(false);
+      return;
+    }
 
-    document.getElementById('saveBtn').addEventListener('click', () => addLog('save_inquiry_test'));
-    document.getElementById('kakaoBtn').addEventListener('click', () => addLog('click_kakao_consult'));
-    document.getElementById('callBtn').addEventListener('click', () => addLog('click_call_consult'));
-  </script>
-</body>
-</html>
+    const record: InquiryRecord = {
+      id: Date.now(),
+      name: formData.name,
+      phone: formData.phone,
+      budget: formData.budget,
+      carType: selectedCarType.label,
+      usage: formData.usage,
+      source: fromSource || "직접 유입",
+      createdAt: new Date().toLocaleString("ko-KR"),
+    };
+
+    onSaveInquiry(record);
+    pushConversion("save_inquiry");
+    setSaveMessage("문의가 테스트용 목록에 저장되었습니다.");
+    setIsSaved(true);
+  };
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="space-y-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-4 rounded-[28px] border border-primary/10 bg-primary/5 p-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
+            <UserCheck className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">AI Matcher</p>
+            <p className="text-sm font-medium leading-relaxed text-foreground/80">{aiMessage}</p>
+          </div>
+        </motion.div>
+
+        <Card className="overflow-hidden rounded-[40px] border-none shadow-2xl shadow-black/5">
+          <CardContent className="p-8 sm:p-12">
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                  <div className="space-y-3">
+                    <p className="text-sm font-bold text-primary">1단계</p>
+                    <h2 className="text-3xl font-bold tracking-tight">생각하시는 예산을 선택해 주세요</h2>
+                    <p className="text-sm leading-6 text-muted-foreground">예산에 맞춰 차량 방향과 체크 포인트가 달라집니다.</p>
+                  </div>
+                  <div className="grid gap-3">
+                    {CONFIG.budgets.map((b) => (
+                      <Button
+                        key={b}
+                        variant={formData.budget === b ? "default" : "outline"}
+                        className="h-16 justify-between rounded-2xl px-6 text-lg transition-all hover:border-primary hover:bg-primary/5"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, budget: b }));
+                          pushConversion("select_budget", b);
+                          setStep(2);
+                        }}
+                      >
+                        {b}
+                        <ChevronRight className="h-5 w-5 opacity-30" />
+                      </Button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-primary">2단계</p>
+                      <h2 className="mt-2 text-3xl font-bold">원하시는 차종을 골라주세요</h2>
+                    </div>
+                    <Button variant="ghost" onClick={() => setStep(1)} className="rounded-2xl"><ChevronLeft className="mr-1 h-4 w-4" /> 이전</Button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {CONFIG.carTypes.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, carType: t.id as CarTypeId }));
+                          pushConversion("select_car_type", formData.budget, t.label);
+                        }}
+                        className={`rounded-3xl border p-6 text-left transition-all ${formData.carType === t.id ? "border-primary bg-primary/5" : "hover:border-primary/40"}`}
+                      >
+                        <span className="mb-2 block text-3xl">{t.icon}</span>
+                        <p className="font-bold">{t.label}</p>
+                        <p className="text-xs text-muted-foreground">{t.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">사용 목적</p>
+                    <div className="flex flex-wrap gap-2">
+                      {CONFIG.usages.map((usage) => (
+                        <button
+                          key={usage}
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, usage }));
+                            pushConversion("select_usage");
+                          }}
+                          className={`rounded-2xl border px-4 py-2 text-sm transition ${formData.usage === usage ? "border-primary bg-primary/10" : "text-muted-foreground"}`}
+                        >
+                          {usage}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">중요하게 보는 조건</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {CONFIG.priorities.map((priority) => (
+                        <button key={priority} onClick={() => togglePriority(priority)} className={`min-h-[60px] rounded-2xl border px-4 py-3 text-left transition ${formData.priorities.includes(priority) ? "border-primary bg-primary/10" : "text-muted-foreground"}`}>
+                          <div className="font-medium">{priority}</div>
+                          <div className="mt-1 text-xs opacity-80">추천 조건에 반영</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      className="rounded-2xl px-6"
+                      disabled={!formData.carType}
+                      onClick={() => {
+                        pushConversion("view_recommendation");
+                        setStep(3);
+                      }}
+                    >
+                      분석 결과 보기
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 3 && recommendation && (
+                <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-primary">3단계</p>
+                      <h2 className="mt-2 text-2xl font-bold">분석이 완료되었습니다</h2>
+                    </div>
+                    <Button variant="ghost" onClick={() => setStep(2)} className="rounded-2xl"><ChevronLeft className="mr-1 h-4 w-4" /> 이전</Button>
+                  </div>
+
+                  <div className="rounded-[32px] border border-primary/20 bg-primary/5 p-8">
+                    <div className="mb-4 flex items-center gap-2 font-medium text-primary">
+                      <CheckCircle2 className="h-5 w-5" /> 조건 분석 완료
+                    </div>
+                    <h3 className="text-2xl font-bold">{recommendation.title}</h3>
+                    <p className="mt-3 leading-7 text-muted-foreground">{recommendation.direction}</p>
+
+                    <div className="mt-5 rounded-2xl border bg-background/80 p-4">
+                      <p className="flex items-center gap-2 text-sm font-semibold"><AlertCircle className="h-4 w-4 text-orange-500" /> 전문가 팁</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.tip}</p>
+                    </div>
+
+                    <div className="mt-5 rounded-2xl border border-primary/15 bg-primary/10 p-4">
+                      <p className="text-sm font-semibold text-primary">개인화 강조 포인트</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.highlight}</p>
+                    </div>
+
+                    <div className="mt-5">
+                      <p className="mb-3 text-sm font-semibold">체크리스트</p>
+                      <div className="grid gap-2">
+                        {recommendation.checklist.map((item) => (
+                          <div key={item} className="rounded-xl border bg-background px-4 py-3 text-sm text-muted-foreground">{item}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Card className="rounded-[30px] border border-border/60 bg-muted/40 shadow-none">
+                    <CardHeader>
+                      <CardTitle>상담 연결</CardTitle>
+                      <CardDescription>이미 입력한 조건은 아래 상담 신청에 자동 반영됩니다.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2">
+                      <Input placeholder="이름" value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} className="rounded-2xl" />
+                      <Input placeholder="연락처" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} className="rounded-2xl" />
+                      <Input value={formData.budget} readOnly className="rounded-2xl bg-background" />
+                      <Input value={selectedCarType?.label ?? ""} readOnly className="rounded-2xl bg-background" />
+                    </CardContent>
+                  </Card>
+
+                  <div className="rounded-[30px] border border-border/60 bg-background p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">예시 차량 카드</p>
+                        <p className="mt-1 text-sm text-muted-foreground">카모두 연동 전에는 조건에 맞는 예시 카드로 흐름을 테스트합니다.</p>
+                      </div>
+                      <Badge variant="secondary" className="rounded-full">예시</Badge>
+                    </div>
+                    <div className="grid gap-3">
+                      {recommendation.sampleCars.map((car) => (
+                        <div key={car.name} className="rounded-2xl border p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{car.name}</p>
+                              <p className="mt-1 text-sm text-muted-foreground">{car.meta}</p>
+                            </div>
+                            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">후보</span>
+                          </div>
+                          <p className="mt-3 text-sm font-medium text-primary">{car.price}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <Button size="lg" className="h-14 rounded-2xl text-base" variant="secondary" onClick={handleSaveInquiry}>문의 저장 테스트</Button>
+                    {saveMessage ? <p className={`text-sm ${isSaved ? "text-primary" : "text-muted-foreground"}`}>{saveMessage}</p> : null}
+                    <Button
+                      size="lg"
+                      className="h-16 rounded-2xl bg-[#FEE500] text-lg font-bold text-black hover:bg-[#FEE500]/90"
+                      onClick={() => pushConversion("click_kakao_consult")}
+                    >
+                      <MessageSquare className="mr-2 h-5 w-5 fill-current" /> 카카오톡으로 결과 받기
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-16 rounded-2xl text-lg"
+                      onClick={() => pushConversion("click_call_consult")}
+                    >
+                      <PhoneCall className="mr-2 h-5 w-5" /> 전화 상담 예약하기
+                    </Button>
+                    <div className="rounded-2xl bg-muted/50 p-4 text-sm italic text-muted-foreground">
+                      “유입 출처: {fromSource || "직접"}” 기반으로 우선 순위가 설정되었습니다.
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <LogSummaryCard logs={logs} />
+        <div className="flex items-center gap-2 px-2 font-bold text-muted-foreground">
+          <Database className="h-4 w-4" />
+          <span>인입 분석 로그 (운영진용)</span>
+        </div>
+        <div className="space-y-3">
+          {inquiryLogs.length === 0 && <p className="px-2 text-sm text-muted-foreground">데이터를 쌓는 중입니다...</p>}
+          {inquiryLogs.map((log) => (
+            <Card key={log.id} className="rounded-2xl border-none bg-white/50 shadow-sm backdrop-blur">
+              <CardContent className="space-y-2 p-4">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-[10px] uppercase">{log.source}</Badge>
+                  <span className="text-[10px] text-muted-foreground">{log.createdAt}</span>
+                </div>
+                <p className="text-sm font-bold">{log.name}님 ({log.budget})</p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className="border-none bg-primary/10 text-[10px] text-primary">{log.carType}</Badge>
+                  <Badge className="border-none bg-muted text-[10px] text-muted-foreground">{log.usage}</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="rounded-[30px] border border-border/60 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">최근 전환 로그</CardTitle>
+            <CardDescription>카카오 클릭, 전화 클릭, 문의 저장을 바로 확인</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs text-muted-foreground">
+            {logs.conversionLogs.length === 0 ? (
+              <div className="rounded-2xl border p-3">아직 전환 로그가 없습니다.</div>
+            ) : (
+              logs.conversionLogs.slice(0, 8).map((log, idx) => (
+                <div key={`${log.timestamp}-${idx}`} className="rounded-2xl border p-3">
+                  <div><span className="font-semibold text-foreground">type</span>: {log.conversionType}</div>
+                  <div><span className="font-semibold text-foreground">path</span>: {log.path}</div>
+                  <div><span className="font-semibold text-foreground">source</span>: {log.sourcePage}</div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState<PageState>({ type: "home" });
+  const [inquiryLogs, setInquiryLogs] = useState<InquiryRecord[]>([]);
+  const [entryLogs, setEntryLogs] = useState<EntryLog[]>([]);
+  const [pageViewLogs, setPageViewLogs] = useState<PageViewLog[]>([]);
+  const [dwellTimeLogs, setDwellTimeLogs] = useState<DwellTimeLog[]>([]);
+  const [conversionLogs, setConversionLogs] = useState<ConversionLog[]>([]);
+  const [sessionId] = useState(() => `sess_${Date.now()}`);
+  const enteredAtRef = useRef<string>(new Date().toISOString());
+
+  const handleNavigate = (page: PageState) => {
+    const now = new Date().toISOString();
+    const previousSlug = currentPage.slug || currentPage.type;
+    const previousEntered = new Date(enteredAtRef.current).getTime();
+    const previousLeft = new Date(now).getTime();
+    const durationSec = Math.max(0, Math.round((previousLeft - previousEntered) / 1000));
+
+    setDwellTimeLogs((prev) => [
+      {
+        sessionId,
+        pageSlug: previousSlug,
+        enteredAt: enteredAtRef.current,
+        leftAt: now,
+        durationSec,
+      },
+      ...prev,
+    ].slice(0, 20));
+
+    setCurrentPage(page);
+    enteredAtRef.current = now;
+    setPageViewLogs((prev) => [
+      {
+        sessionId,
+        timestamp: now,
+        pageType: page.type,
+        pageSlug: page.slug || page.type,
+        path: getPath(page),
+      },
+      ...prev,
+    ].slice(0, 20));
+    window.scrollTo(0, 0);
+  };
+
+  const handleSaveInquiry = (record: InquiryRecord) => {
+    setInquiryLogs((prev) => [record, ...prev].slice(0, 5));
+  };
+
+  useEffect(() => {
+    const now = new Date().toISOString();
+    setEntryLogs([
+      {
+        sessionId,
+        timestamp: now,
+        entryPage: currentPage.type,
+        entryPath: getPath(currentPage),
+        entrySource: currentPage.fromSource || "direct",
+        deviceType: getDeviceType(),
+      },
+    ]);
+
+    setPageViewLogs([
+      {
+        sessionId,
+        timestamp: now,
+        pageType: currentPage.type,
+        pageSlug: currentPage.slug || currentPage.type,
+        path: getPath(currentPage),
+      },
+    ]);
+  }, []);
+
+  const currentPath = getPath(currentPage);
+
+  const content = useMemo(() => {
+    const logBundle: LogBundle = { entryLogs, pageViewLogs, dwellTimeLogs, conversionLogs };
+
+    if (currentPage.type === "consult") {
+      return (
+        <ConsultPage
+          fromSource={currentPage.fromSource}
+          inquiryLogs={inquiryLogs}
+          logs={logBundle}
+          sessionId={sessionId}
+          currentPath={currentPath}
+          onSaveInquiry={handleSaveInquiry}
+          onAddConversionLog={(record) => setConversionLogs((prev) => [record, ...prev].slice(0, 20))}
+        />
+      );
+    }
+
+    if (currentPage.type === "guide") {
+      const pageData = guidePages.find((p) => p.slug === currentPage.slug) || guidePages[0];
+      return <ContentPage pageData={pageData} onNavigate={handleNavigate} path={currentPath} />;
+    }
+
+    if (currentPage.type === "budget") {
+      const pageData = budgetPages.find((p) => p.slug === currentPage.slug) || budgetPages[0];
+      return <ContentPage pageData={pageData} onNavigate={handleNavigate} path={currentPath} />;
+    }
+
+    if (currentPage.type === "type") {
+      const pageData = typePages.find((p) => p.slug === currentPage.slug) || typePages[0];
+      return <ContentPage pageData={pageData} onNavigate={handleNavigate} path={currentPath} />;
+    }
+
+    return <HomePage onNavigate={handleNavigate} />;
+  }, [conversionLogs, currentPage, currentPath, dwellTimeLogs, entryLogs, inquiryLogs, pageViewLogs, sessionId]);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
+      <TopNav onNavigate={handleNavigate} currentPath={currentPath} />
+      <div className="mx-auto max-w-7xl px-4 pt-4 text-xs text-muted-foreground sm:px-6 lg:px-8">
+        현재 세션: <span className="font-mono">{sessionId}</span> · entry {entryLogs[0]?.entrySource || "direct"}
+      </div>
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <AnimatePresence mode="wait">{content}</AnimatePresence>
+      </main>
+    </div>
+  );
+}
