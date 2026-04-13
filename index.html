@@ -5,10 +5,10 @@ html = r'''<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>카매치 | 원하는 조건은 빠르게 찾고, 구매는 더 편안하게</title>
+  <title>카매치 | 자유형 AI 중고차 상담</title>
   <meta
     name="description"
-    content="간단하게 찾아보고, 상담이 필요할 때만 편하게 문의할 수 있는 중고차 비교 서비스 카매치"
+    content="자유롭게 차량 조건을 입력하면 AI가 예산대 시세와 예시 차량을 안내하는 카매치 상담형 테스트 페이지"
   />
   <style>
     :root {
@@ -18,10 +18,13 @@ html = r'''<!DOCTYPE html>
       --text: #0f172a;
       --sub: #64748b;
       --yellow: #fee500;
+      --bg: #f7fbff;
+      --bot: #f1f5f9;
+      --user: #dbeafe;
+      --white: #ffffff;
     }
 
     * { box-sizing: border-box; }
-
     html, body {
       margin: 0;
       padding: 0;
@@ -31,7 +34,8 @@ html = r'''<!DOCTYPE html>
     }
 
     a { color: inherit; text-decoration: none; }
-    button { font: inherit; cursor: pointer; border: 0; background: none; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; border: 0; background: none; }
 
     .container {
       width: min(1180px, calc(100% - 32px));
@@ -86,23 +90,14 @@ html = r'''<!DOCTYPE html>
 
     .nav a:hover { color: var(--blue); }
 
-    .mobile-menu {
-      display: none;
-      height: 40px;
-      padding: 0 14px;
-      border-radius: 12px;
-      border: 1px solid #dbe4f0;
-      background: white;
-      color: #334155;
-      font-weight: 800;
+    .hero {
+      padding: 28px 0 24px;
     }
-
-    .hero { padding: 28px 0 44px; }
 
     .hero-grid {
       display: grid;
       grid-template-columns: 1.02fr 0.98fr;
-      gap: 36px;
+      gap: 28px;
       align-items: start;
     }
 
@@ -110,8 +105,8 @@ html = r'''<!DOCTYPE html>
 
     .hero h1 {
       margin: 0;
-      font-size: 64px;
-      line-height: 1.1;
+      font-size: 60px;
+      line-height: 1.08;
       letter-spacing: -0.05em;
       font-weight: 900;
     }
@@ -120,15 +115,15 @@ html = r'''<!DOCTYPE html>
 
     .hero-sub {
       margin-top: 24px;
-      font-size: 28px;
+      font-size: 26px;
       line-height: 1.55;
       color: var(--sub);
       font-weight: 800;
     }
 
     .guide-card {
-      margin-top: 46px;
-      max-width: 480px;
+      margin-top: 32px;
+      max-width: 500px;
       background: rgba(255,255,255,0.96);
       border: 3px solid var(--blue);
       border-radius: 24px;
@@ -136,44 +131,21 @@ html = r'''<!DOCTYPE html>
       box-shadow: 0 18px 40px rgba(37,99,235,0.14);
     }
 
-    .guide-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-    }
-
-    .guide-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .guide-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 18px;
-      background: #eef5ff;
-      display: grid;
-      place-items: center;
-      font-size: 26px;
-      flex: 0 0 auto;
-    }
-
     .guide-title {
       font-size: 28px;
       font-weight: 900;
       letter-spacing: -0.04em;
+      margin: 0 0 8px;
     }
 
-    .guide-arrow {
-      font-size: 34px;
-      color: var(--blue);
-      font-weight: 900;
+    .guide-text {
+      margin: 0;
+      color: var(--sub);
+      line-height: 1.7;
+      font-size: 15px;
     }
 
-    .chat-card {
+    .chat-shell {
       background: white;
       border-radius: 28px;
       overflow: hidden;
@@ -210,7 +182,7 @@ html = r'''<!DOCTYPE html>
     }
 
     .chat-top-title {
-      font-size: 32px;
+      font-size: 30px;
       font-weight: 900;
       letter-spacing: -0.04em;
       margin: 0;
@@ -219,7 +191,7 @@ html = r'''<!DOCTYPE html>
     .chat-top-desc {
       margin: 4px 0 0;
       color: #dbeafe;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.4;
     }
 
@@ -228,425 +200,73 @@ html = r'''<!DOCTYPE html>
       padding: 18px;
     }
 
-    .bubble-row {
+    .messages {
       display: flex;
-      gap: 12px;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 620px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .message-row {
+      display: flex;
+      gap: 10px;
       align-items: flex-start;
     }
 
-    .bubble-avatar {
-      width: 42px;
-      height: 42px;
+    .message-row.user {
+      justify-content: flex-end;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: #dbeafe;
       display: grid;
       place-items: center;
-      font-size: 20px;
       flex: 0 0 auto;
+      font-size: 18px;
+      background: #dbeafe;
+    }
+
+    .message-row.user .avatar {
+      order: 2;
+      background: #e2e8f0;
     }
 
     .bubble {
-      max-width: 440px;
-      background: #f1f5f9;
+      max-width: min(92%, 460px);
+      border-radius: 22px;
+      padding: 14px 16px;
+      line-height: 1.7;
+      font-size: 15px;
+      font-weight: 700;
+      white-space: pre-line;
+    }
+
+    .message-row.bot .bubble {
+      background: var(--bot);
+      color: #0f172a;
+    }
+
+    .message-row.user .bubble {
+      background: var(--user);
+      color: #1e3a8a;
+    }
+
+    .result-card {
+      margin-left: 50px;
+      margin-top: 4px;
+      background: white;
+      border: 1px solid #dbe7f5;
       border-radius: 22px;
       padding: 16px;
-      font-size: 18px;
-      line-height: 1.65;
-      font-weight: 800;
+      box-shadow: 0 10px 24px rgba(148,163,184,0.12);
     }
 
-    .quick-grid {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .quick-btn {
-      height: 58px;
-      border-radius: 999px;
-      border: 2px solid #60a5fa;
-      background: white;
-      color: #1d4ed8;
-      font-size: 18px;
-      font-weight: 900;
-      transition: 0.15s ease;
-    }
-
-    .quick-btn:hover {
-      background: #eff6ff;
-      transform: translateY(-1px);
-    }
-
-    .input-row {
-      margin-top: 16px;
-      border: 2px solid #dbe4f0;
-      background: white;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 10px 10px 16px;
-    }
-
-    .input-row input {
-      border: 0;
-      outline: none;
-      flex: 1;
-      font-size: 16px;
-      color: #94a3b8;
-      background: transparent;
-      min-width: 0;
-    }
-
-    .send-btn {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--blue);
-      color: white;
-      font-size: 22px;
-      font-weight: 900;
-      box-shadow: 0 10px 24px rgba(37,99,235,0.2);
-    }
-
-    .cards { padding: 8px 0 48px; }
-
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    .info-card {
-      background: rgba(255,255,255,0.95);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 10px 26px rgba(148,163,184,0.14);
-      border: 1px solid #edf2f7;
-    }
-
-    .info-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid #bfdbfe;
-      color: var(--blue-dark);
-      font-size: 13px;
-      font-weight: 800;
-      background: #f8fbff;
-    }
-
-    .info-title {
-      margin: 18px 0 10px;
-      font-size: 24px;
-      line-height: 1.4;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
-
-    .info-desc {
-      color: var(--sub);
-      line-height: 1.7;
-      font-size: 15px;
-      min-height: 72px;
-    }
-
-    .info-more {
-      margin-top: 18px;
-      color: var(--blue);
-      font-weight: 900;
-      font-size: 15px;
-    }
-
-    .section { padding: 0 0 60px; }
-
-    .section-card {
-      background: white;
-      border-radius: 24px;
-      padding: 22px;
-      border: 1px solid #e5edf7;
-      box-shadow: 0 12px 30px rgba(148,163,184,0.1);
-    }
-
-    .section-title {
-      margin: 0 0 8px;
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
-
-    .section-sub {
-      margin: 0;
-      color: var(--sub);
-      line-height: 1.7;
-      font-size: 15px;
-    }
-
-    .flow-grid {
-      margin-top: 18px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-
-    .flow-item {
-      background: #f8fbff;
-      border: 1px solid #e3edf8;
-      border-radius: 18px;
-      padding: 18px 14px;
-      text-align: center;
-    }
-
-    .flow-no {
-      width: 34px;
-      height: 34px;
-      margin: 0 auto 12px;
-      border-radius: 50%;
-      background: var(--blue);
-      color: white;
-      display: grid;
-      place-items: center;
-      font-size: 14px;
-      font-weight: 900;
-    }
-
-    .flow-text {
-      font-size: 15px;
-      font-weight: 800;
-      line-height: 1.5;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15,23,42,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 50;
-    }
-
-    .modal-backdrop.show { display: flex; }
-
-    .modal {
-      width: min(760px, 100%);
-      max-height: 92vh;
-      overflow: auto;
-      background: white;
-      border-radius: 28px;
-      padding: 24px;
-      box-shadow: 0 30px 80px rgba(15,23,42,0.28);
-    }
-
-    .modal-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
-
-    .modal-desc {
-      margin: 8px 0 0;
-      color: var(--sub);
-      line-height: 1.7;
-    }
-
-    .close-btn {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      border: 1px solid #dbe4f0;
-      background: white;
-      font-size: 20px;
-      font-weight: 900;
-      color: #334155;
-      flex: 0 0 auto;
-    }
-
-    .budget-grid,
-    .type-grid,
-    .cta-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    .budget-grid { grid-template-columns: 1fr 1fr; }
-
-    .type-grid {
-      grid-template-columns: 1fr 1fr;
+    .result-section + .result-section {
       margin-top: 14px;
-    }
-
-    .budget-btn,
-    .type-btn {
-      border: 1px solid #dbe4f0;
-      background: white;
-      border-radius: 18px;
-      padding: 16px;
-      text-align: left;
-      transition: 0.15s ease;
-    }
-
-    .budget-btn:hover,
-    .type-btn:hover,
-    .budget-btn.active,
-    .type-btn.active {
-      border-color: #60a5fa;
-      background: #eff6ff;
-    }
-
-    .budget-btn strong,
-    .type-btn strong {
-      display: block;
-      font-size: 18px;
-      line-height: 1.5;
-    }
-
-    .type-btn span {
-      display: block;
-      margin-top: 6px;
-      color: var(--sub);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .result-box {
-      margin-top: 18px;
-      background: #f8fbff;
-      border: 1px solid #dbe9fa;
-      border-radius: 20px;
-      padding: 18px;
-      display: none;
-    }
-
-    .result-box.show { display: block; }
-
-    .result-title {
-      margin: 0 0 10px;
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
-
-    .result-copy {
-      margin: 0;
-      color: #334155;
-      line-height: 1.75;
-      font-size: 15px;
-    }
-
-    .inquiry-box {
-      margin-top: 18px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .inquiry-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .field {
-      width: 100%;
-      height: 50px;
-      border: 1px solid #dbe4f0;
-      border-radius: 16px;
-      padding: 0 14px;
-      font: inherit;
-      font-size: 15px;
-      outline: none;
-      background: white;
-    }
-
-    .field:focus {
-      border-color: #60a5fa;
-    }
-
-    .cta-grid {
-      grid-template-columns: 1fr;
-      margin-top: 18px;
-    }
-
-    .save-btn,
-    .kakao-btn,
-    .call-btn {
-      height: 54px;
-      border-radius: 18px;
-      font-size: 16px;
-      font-weight: 900;
-    }
-
-    .save-btn {
-      background: #eef2f7;
-      color: #0f172a;
-    }
-
-    .kakao-btn {
-      background: var(--yellow);
-      color: #111827;
-    }
-
-    .call-btn {
-      background: white;
-      border: 1px solid #dbe4f0;
-      color: #0f172a;
-    }
-
-    .status {
-      margin-top: 12px;
-      color: var(--sub);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 22px;
-    }
-
-    .footer {
-      padding: 24px 0 60px;
-      color: var(--sub);
-      font-size: 14px;
-      text-align: center;
-    }
-
-    .ai-answer-box,
-    .market-range-box,
-    .notice-box,
-    .followup-box,
-    .sample-cars-wrap {
-      margin-top: 16px;
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .ai-answer-box {
-      background: #ffffff;
-      border: 1px solid #dbe7f5;
-    }
-
-    .market-range-box {
-      background: #eef6ff;
-      border: 1px solid #cfe3ff;
-    }
-
-    .notice-box {
-      background: #fff8e8;
-      border: 1px solid #f6df9c;
-    }
-
-    .sample-cars-wrap {
-      background: #ffffff;
-      border: 1px solid #dbe7f5;
     }
 
     .block-label {
@@ -654,12 +274,10 @@ html = r'''<!DOCTYPE html>
       font-size: 13px;
       font-weight: 900;
       letter-spacing: -0.02em;
-      color: #1d4ed8;
+      color: var(--blue-dark);
     }
 
-    .ai-answer-text,
-    .market-range-text,
-    .notice-text {
+    .block-copy {
       margin: 0;
       font-size: 14px;
       line-height: 1.75;
@@ -668,7 +286,6 @@ html = r'''<!DOCTYPE html>
 
     .sample-cars-grid {
       display: grid;
-      grid-template-columns: 1fr;
       gap: 12px;
       margin-top: 10px;
     }
@@ -728,12 +345,7 @@ html = r'''<!DOCTYPE html>
       margin-top: 10px;
       font-size: 14px;
       font-weight: 900;
-      color: #2563eb;
-    }
-
-    .followup-box {
-      background: #ffffff;
-      border: 1px solid #dbe7f5;
+      color: var(--blue);
     }
 
     .followup-grid {
@@ -759,180 +371,239 @@ html = r'''<!DOCTYPE html>
       background: #dbeafe;
     }
 
-    .result-divider {
+    .cta-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .save-btn,
+    .kakao-btn,
+    .call-btn {
+      height: 52px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .save-btn {
+      background: #eef2f7;
+      color: #0f172a;
+    }
+
+    .kakao-btn {
+      background: var(--yellow);
+      color: #111827;
+    }
+
+    .call-btn {
+      background: white;
+      border: 1px solid #dbe4f0;
+      color: #0f172a;
+    }
+
+    .notice-box {
+      background: #fff8e8;
+      border: 1px solid #f6df9c;
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .input-area {
       margin-top: 16px;
-      height: 1px;
-      background: #e2e8f0;
+      background: white;
+      border: 1px solid #dbe4f0;
+      border-radius: 22px;
+      padding: 12px;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .quick-btn {
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 0 14px;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr 54px;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .composer textarea {
+      width: 100%;
+      min-height: 74px;
+      max-height: 180px;
+      resize: vertical;
+      border: 1px solid #dbe4f0;
+      border-radius: 18px;
+      padding: 14px;
+      outline: none;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text);
+      background: #f8fafc;
+    }
+
+    .composer textarea:focus {
+      border-color: #93c5fd;
+      background: white;
+    }
+
+    .send-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      background: var(--blue);
+      color: white;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.2);
+    }
+
+    .status-bar {
+      margin-top: 10px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 21px;
+    }
+
+    .summary-cards {
+      padding: 12px 0 54px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .info-card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 26px rgba(148,163,184,0.14);
+      border: 1px solid #edf2f7;
+    }
+
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      color: var(--blue-dark);
+      font-size: 13px;
+      font-weight: 800;
+      background: #f8fbff;
+    }
+
+    .info-title {
+      margin: 18px 0 10px;
+      font-size: 24px;
+      line-height: 1.4;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .info-desc {
+      color: var(--sub);
+      line-height: 1.7;
+      font-size: 15px;
+      min-height: 72px;
     }
 
     @media (max-width: 980px) {
       .hero-grid { grid-template-columns: 1fr; }
-      .hero h1 { font-size: 52px; }
-      .hero-sub { font-size: 24px; }
-      .cards-grid,
-      .flow-grid { grid-template-columns: 1fr 1fr; }
+      .hero h1 { font-size: 48px; }
+      .hero-sub { font-size: 22px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
       .nav { display: none; }
-      .mobile-menu { display: inline-flex; }
     }
 
     @media (max-width: 640px) {
-      .container {
-        width: min(100% - 24px, 100%);
-      }
-
+      .container { width: min(100% - 24px, 100%); }
       .topbar-inner { height: 58px; }
-
       .brand { font-size: 21px; }
-
       .brand-badge {
         width: 36px;
         height: 36px;
         border-radius: 12px;
         font-size: 18px;
       }
-
-      .hero { padding: 18px 0 28px; }
+      .hero { padding: 18px 0 18px; }
       .hero-copy { padding-top: 8px; }
-
       .hero h1 {
-        font-size: 38px;
+        font-size: 36px;
         line-height: 1.14;
       }
-
       .hero-sub {
         margin-top: 16px;
         font-size: 18px;
         line-height: 1.65;
       }
-
       .guide-card {
-        margin-top: 28px;
+        margin-top: 24px;
         padding: 14px;
         border-width: 2px;
         border-radius: 20px;
       }
-
-      .guide-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-        font-size: 22px;
-      }
-
-      .guide-title { font-size: 21px; }
-      .guide-arrow { font-size: 28px; }
-
-      .chat-card { border-radius: 22px; }
+      .guide-title { font-size: 22px; }
+      .chat-shell { border-radius: 22px; }
       .chat-top { padding: 14px; }
-
       .chat-logo {
         width: 42px;
         height: 42px;
         font-size: 22px;
       }
-
       .chat-top-title { font-size: 24px; }
       .chat-top-desc { font-size: 13px; }
       .chat-body { padding: 14px; }
-
-      .bubble-avatar {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
-      }
-
       .bubble {
         padding: 14px;
-        font-size: 15px;
+        font-size: 14px;
         border-radius: 18px;
       }
-
-      .quick-grid { gap: 10px; }
-
-      .quick-btn {
-        height: 48px;
-        font-size: 15px;
-      }
-
-      .input-row {
-        padding: 8px 8px 8px 14px;
-      }
-
-      .input-row input { font-size: 14px; }
-
-      .send-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 20px;
-      }
-
-      .cards { padding-bottom: 36px; }
-
-      .cards-grid,
-      .flow-grid,
-      .budget-grid,
-      .type-grid,
-      .inquiry-grid,
-      .followup-grid {
+      .result-card { margin-left: 0; }
+      .followup-grid,
+      .quick-grid,
+      .summary-grid {
         grid-template-columns: 1fr;
       }
-
+      .composer {
+        grid-template-columns: 1fr 48px;
+      }
+      .send-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+      }
+      .sample-car-name { font-size: 15px; }
+      .sample-car-desc,
+      .sample-car-points,
+      .block-copy,
+      .composer textarea {
+        font-size: 13px;
+      }
       .info-card {
         padding: 18px;
         border-radius: 20px;
       }
-
       .info-title { font-size: 20px; }
-
-      .info-desc {
-        min-height: auto;
-        font-size: 14px;
-      }
-
-      .section { padding-bottom: 40px; }
-
-      .section-card {
-        padding: 18px;
-        border-radius: 20px;
-      }
-
-      .section-title { font-size: 22px; }
-
-      .flow-item { padding: 16px 12px; }
-      .flow-text { font-size: 14px; }
-
-      .modal {
-        border-radius: 22px;
-        padding: 18px;
-      }
-
-      .modal-title { font-size: 22px; }
-      .modal-desc { font-size: 14px; }
-
-      .budget-btn strong,
-      .type-btn strong {
-        font-size: 16px;
-      }
-
-      .type-btn span,
-      .result-copy,
-      .ai-answer-text,
-      .market-range-text,
-      .notice-text,
-      .sample-car-desc,
-      .sample-car-points {
-        font-size: 13px;
-      }
-
-      .result-title { font-size: 19px; }
-      .sample-car-name { font-size: 15px; }
-
-      .save-btn,
-      .kakao-btn,
-      .call-btn {
-        height: 50px;
-        font-size: 15px;
-      }
     }
   </style>
 </head>
@@ -945,12 +616,10 @@ html = r'''<!DOCTYPE html>
       </a>
 
       <nav class="nav">
-        <a href="#home" data-page="home">홈</a>
-        <a href="#flow" data-page="flow">이용 방법</a>
-        <a href="#guides" data-page="guides">구매 가이드</a>
+        <a href="#home">홈</a>
+        <a href="#flow">이용 방법</a>
+        <a href="#guides">구매 가이드</a>
       </nav>
-
-      <button class="mobile-menu">메뉴</button>
     </div>
   </header>
 
@@ -960,231 +629,103 @@ html = r'''<!DOCTYPE html>
         <div class="hero-copy">
           <h1>
             원하는 조건은<br />
-            <span class="point">빠르게</span> 찾고,<br />
-            구매는 <span class="point">더 편안하게</span>
+            <span class="point">직접 말하고</span>,<br />
+            상담은 <span class="point">더 자연스럽게</span>
           </h1>
 
           <p class="hero-sub">
-            간단하게 찾아보고,<br />
-            상담이 필요할 때만 편하게 문의할 수 있습니다.
+            자유롭게 질문하면 AI가 방향을 정리하고,<br />
+            필요한 순간에만 상담으로 이어집니다.
           </p>
 
           <div class="guide-card">
-            <a href="#guides" class="guide-link" data-page="guides">
-              <div class="guide-left">
-                <div class="guide-icon">💡</div>
-                <div class="guide-title">중고차 구매 요령</div>
-              </div>
-              <div class="guide-arrow">›</div>
-            </a>
+            <h2 class="guide-title">자유형 AI 상담 테스트</h2>
+            <p class="guide-text">
+              지금 화면은 실매물 연동 전 단계의 테스트 UI입니다.
+              사용자가 “3천만원으로 살 수 있는 SUV 추천해줘”처럼 직접 입력하면
+              AI 답변, 예시 차량, 후속 질문, 상담 CTA가 이어지도록 설계했습니다.
+            </p>
           </div>
         </div>
 
-        <div class="chat-card">
+        <div class="chat-shell">
           <div class="chat-top">
             <div class="chat-top-left">
               <div class="chat-logo">🤖</div>
               <div>
                 <p class="chat-top-title">카매치 AI</p>
-                <p class="chat-top-desc">원하는 조건을 말씀해주시면 맞는 차량을 찾아드릴게요.</p>
+                <p class="chat-top-desc">자유롭게 질문하면 예산대 시세와 예시 차량을 안내해드릴게요.</p>
               </div>
             </div>
             <div>⋮</div>
           </div>
 
           <div class="chat-body">
-            <div class="bubble-row">
-              <div class="bubble-avatar">🤖</div>
-              <div class="bubble">
-                안녕하세요! 👋<br />
-                어떤 차를 찾고 계신지 말씀해주시면<br />
-                조건에 맞게 추천 방향을 정리해드릴게요.
+            <div class="messages" id="messages">
+              <div class="message-row bot">
+                <div class="avatar">🤖</div>
+                <div class="bubble">
+안녕하세요! 👋
+예산, 차종, 용도, 중요 조건을 편하게 말씀해 주세요.
+예: “3천만원으로 살 수 있는 SUV 추천해줘”
+                </div>
               </div>
             </div>
 
-            <div class="quick-grid">
-              <button class="quick-btn open-modal">예산으로 찾기</button>
-              <button class="quick-btn open-modal">첫차 추천</button>
-              <button class="quick-btn open-modal">SUV 찾기</button>
-              <button class="quick-btn open-modal">수입차 비교</button>
-            </div>
+            <div class="input-area">
+              <div class="quick-grid">
+                <button class="quick-btn" data-quick="3천만원으로 살 수 있는 SUV 추천해줘">3천만원 SUV 추천</button>
+                <button class="quick-btn" data-quick="첫차로 부담 적은 중고차 추천해줘">첫차 추천</button>
+                <button class="quick-btn" data-quick="2천만원대 세단 중 유지비 적은 차 알려줘">2천만원대 세단</button>
+                <button class="quick-btn" data-quick="수입차도 포함해서 비교해줘">수입차 포함 비교</button>
+              </div>
 
-            <div class="input-row">
-              <input type="text" value="예) 2천만원 예산의 SUV 찾아줘" readonly />
-              <button class="send-btn open-modal">↗</button>
+              <div class="composer">
+                <textarea id="chatInput" placeholder="예: 3천만원으로 살 수 있는 무사고 SUV 추천해줘"></textarea>
+                <button class="send-btn" id="sendBtn">↗</button>
+              </div>
+
+              <div class="status-bar" id="statusText">
+                자유형 상담 테스트 중입니다. 현재는 실매물 연동 전 예시 결과를 보여줍니다.
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="cards" id="guides">
-      <div class="container cards-grid">
+    <section class="summary-cards" id="guides">
+      <div class="container summary-grid">
         <article class="info-card">
-          <span class="info-badge">첫차 가이드</span>
-          <h3 class="info-title">사회초년생 첫차 고르는 기준</h3>
+          <span class="info-badge">자유입력</span>
+          <h3 class="info-title">사용자가 직접 질문</h3>
           <p class="info-desc">
-            첫차는 가격만 보지 말고 보험료, 유지비, 정비 부담까지 함께 보는 것이 중요합니다.
+            예산, 차종, 용도, 무사고 여부 같은 조건을 자유롭게 입력하는 흐름을 먼저 검증합니다.
           </p>
-          <div class="info-more">더 읽어보기 →</div>
         </article>
 
         <article class="info-card">
-          <span class="info-badge">예산별 추천</span>
-          <h3 class="info-title">2,000만원대 SUV 추천 기준</h3>
+          <span class="info-badge">예시 결과</span>
+          <h3 class="info-title">시세와 차량군 안내</h3>
           <p class="info-desc">
-            연식, 주행거리, 사고 이력과 실제 관리 상태를 함께 비교해야 만족도가 높아집니다.
+            실매물 연동 전 단계에서는 예산대에서 많이 비교되는 예시 차량과 시세 구간을 보여줍니다.
           </p>
-          <div class="info-more">더 읽어보기 →</div>
         </article>
 
         <article class="info-card">
-          <span class="info-badge">구매 팁</span>
-          <h3 class="info-title">중고차 사고이력 확인 포인트</h3>
+          <span class="info-badge">상담 전환</span>
+          <h3 class="info-title">필요할 때만 문의</h3>
           <p class="info-desc">
-            무사고 문구보다 성능기록부, 보험 이력, 침수·누유 여부를 함께 확인하는 것이 중요합니다.
+            AI 답변 이후 자연스럽게 후속 질문과 상담 신청, 카카오, 전화 상담 CTA로 연결됩니다.
           </p>
-          <div class="info-more">더 읽어보기 →</div>
         </article>
-      </div>
-    </section>
-
-    <section class="section" id="flow">
-      <div class="container section-card">
-        <h2 class="section-title">이용 방법</h2>
-        <p class="section-sub">
-          카매치는 복잡한 검색보다, 조건에 맞는 비교 흐름을 먼저 보여주고 필요할 때 상담으로 이어지도록 설계했습니다.
-        </p>
-
-        <div class="flow-grid">
-          <div class="flow-item">
-            <div class="flow-no">1</div>
-            <div class="flow-text">예산이나 차종으로<br />간단히 시작</div>
-          </div>
-          <div class="flow-item">
-            <div class="flow-no">2</div>
-            <div class="flow-text">조건에 맞는<br />추천 방향 확인</div>
-          </div>
-          <div class="flow-item">
-            <div class="flow-no">3</div>
-            <div class="flow-text">예시 차량과<br />체크포인트 보기</div>
-          </div>
-          <div class="flow-item">
-            <div class="flow-no">4</div>
-            <div class="flow-text">필요할 때만<br />편하게 문의</div>
-          </div>
-        </div>
       </div>
     </section>
   </main>
 
-  <div class="modal-backdrop" id="consultModal">
-    <div class="modal">
-      <div class="modal-top">
-        <div>
-          <h2 class="modal-title">조건 비교 시작하기</h2>
-          <p class="modal-desc">
-            예산과 차종만 먼저 선택해도 방향을 빠르게 정리해볼 수 있습니다.
-          </p>
-        </div>
-        <button class="close-btn" id="closeModal">×</button>
-      </div>
-
-      <div>
-        <div class="budget-grid">
-          <button class="budget-btn" data-budget="1,000만원 이하">
-            <strong>1,000만원 이하</strong>
-          </button>
-          <button class="budget-btn" data-budget="1,000~2,000만원">
-            <strong>1,000~2,000만원</strong>
-          </button>
-          <button class="budget-btn" data-budget="2,000~3,000만원">
-            <strong>2,000~3,000만원</strong>
-          </button>
-          <button class="budget-btn" data-budget="3,000만원 이상">
-            <strong>3,000만원 이상</strong>
-          </button>
-        </div>
-
-        <div class="type-grid">
-          <button class="type-btn" data-type="세단">
-            <strong>세단</strong>
-            <span>출퇴근과 승차감 중심</span>
-          </button>
-          <button class="type-btn" data-type="SUV">
-            <strong>SUV</strong>
-            <span>가족용과 적재공간 중심</span>
-          </button>
-          <button class="type-btn" data-type="경차">
-            <strong>경차</strong>
-            <span>도심 주행과 유지비 중심</span>
-          </button>
-          <button class="type-btn" data-type="수입차">
-            <strong>수입차</strong>
-            <span>브랜드 만족도와 정비 이력 중심</span>
-          </button>
-        </div>
-
-        <div class="result-box" id="resultBox">
-          <h3 class="result-title" id="resultTitle">추천 방향</h3>
-          <p class="result-copy" id="resultCopy"></p>
-
-          <div class="ai-answer-box">
-            <p class="block-label">AI 답변</p>
-            <p class="ai-answer-text" id="aiAnswerText"></p>
-          </div>
-
-          <div class="market-range-box">
-            <p class="block-label">예산대 참고 시세</p>
-            <p class="market-range-text" id="marketRangeText"></p>
-          </div>
-
-          <div class="sample-cars-wrap">
-            <p class="block-label">예시 비교 차량</p>
-            <div class="sample-cars-grid" id="sampleCarsGrid"></div>
-          </div>
-
-          <div class="followup-box">
-            <p class="block-label">후속 질문</p>
-            <div class="followup-grid">
-              <button class="followup-btn" data-followup="무사고 차량 위주로 다시 보기">무사고 차량 위주로 보기</button>
-              <button class="followup-btn" data-followup="SUV 중심으로 다시 보기">SUV 중심으로 다시 보기</button>
-              <button class="followup-btn" data-followup="유지비 적은 차량 위주로 보기">유지비 적은 차량 보기</button>
-              <button class="followup-btn" data-followup="수입차까지 포함해서 비교하기">수입차도 비교하기</button>
-            </div>
-          </div>
-
-          <div class="notice-box">
-            <p class="block-label">안내</p>
-            <p class="notice-text" id="noticeText">
-              현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.
-            </p>
-          </div>
-
-          <div class="result-divider"></div>
-
-          <div class="inquiry-box">
-            <div class="inquiry-grid">
-              <input class="field" id="nameInput" type="text" placeholder="이름" />
-              <input class="field" id="phoneInput" type="text" placeholder="연락처" />
-            </div>
-          </div>
-
-          <div class="cta-grid">
-            <button class="save-btn" id="saveBtn">문의 저장 테스트</button>
-            <button class="kakao-btn" id="kakaoBtn">카카오톡으로 결과 받기</button>
-            <button class="call-btn" id="callBtn">전화 상담 예약하기</button>
-          </div>
-
-          <div class="status" id="statusText"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <footer class="footer">
     <div class="container">
-      카매치 · 간단하게 찾아보고, 상담이 필요할 때만 편하게 문의할 수 있습니다.
+      카매치 · 자유롭게 질문하고, 필요할 때만 편하게 상담할 수 있습니다.
     </div>
   </footer>
 
@@ -1194,139 +735,11 @@ html = r'''<!DOCTYPE html>
     const SESSION_KEY = 'carmatch_session_id';
     const ENTRY_SENT_KEY = 'carmatch_entry_sent';
 
-    const modal = document.getElementById('consultModal');
-    const openButtons = document.querySelectorAll('.open-modal');
-    const closeModal = document.getElementById('closeModal');
-    const budgetButtons = document.querySelectorAll('.budget-btn');
-    const typeButtons = document.querySelectorAll('.type-btn');
-    const resultBox = document.getElementById('resultBox');
-    const resultTitle = document.getElementById('resultTitle');
-    const resultCopy = document.getElementById('resultCopy');
+    const messages = document.getElementById('messages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
     const statusText = document.getElementById('statusText');
-    const aiAnswerText = document.getElementById('aiAnswerText');
-    const marketRangeText = document.getElementById('marketRangeText');
-    const sampleCarsGrid = document.getElementById('sampleCarsGrid');
-    const noticeText = document.getElementById('noticeText');
-    const followupButtons = document.querySelectorAll('.followup-btn');
-    const saveBtn = document.getElementById('saveBtn');
-    const kakaoBtn = document.getElementById('kakaoBtn');
-    const callBtn = document.getElementById('callBtn');
-    const nameInput = document.getElementById('nameInput');
-    const phoneInput = document.getElementById('phoneInput');
-
-    let selectedBudget = '';
-    let selectedType = '';
-
-    const SAMPLE_RESULT_DATA = {
-      "1,000만원 이하": {
-        range: "예시 비교 구간: 500만원 ~ 1,000만원",
-        answer:
-          "1,000만원 이하 예산에서는 첫차, 출퇴근용, 유지비 부담이 낮은 차량 위주로 비교가 많습니다. 이 구간은 옵션보다 관리 상태와 소모품 이력이 더 중요합니다.",
-        notice:
-          "실매물 연동 전 테스트 단계라, 이 예산대에서 자주 비교되는 차량군을 예시로 보여드립니다.",
-        cars: [
-          {
-            name: "2017 현대 아반떼 AD",
-            desc: "첫차와 출퇴근용으로 많이 비교되는 대표 준중형 세단",
-            points: "가성비 / 유지비 / 무난한 실사용",
-            price: "예시 시세 700~950만원"
-          },
-          {
-            name: "2018 기아 K3",
-            desc: "연식과 가격 밸런스를 보기 좋은 준중형 비교군",
-            points: "디자인 / 실용성 / 출퇴근",
-            price: "예시 시세 750~1,000만원"
-          },
-          {
-            name: "2019 쉐보레 더 넥스트 스파크",
-            desc: "도심 주행과 유지비 중심으로 자주 비교되는 경차",
-            points: "도심주행 / 주차편의 / 낮은 유지비",
-            price: "예시 시세 500~850만원"
-          }
-        ]
-      },
-      "1,000~2,000만원": {
-        range: "예시 비교 구간: 1,100만원 ~ 2,000만원",
-        answer:
-          "1,000~2,000만원 예산이면 사회초년생 첫차, 실속형 SUV, 준중형 세단까지 비교 폭이 넓어집니다. 가격뿐 아니라 사고이력과 실제 관리 상태를 함께 보는 것이 좋습니다.",
-        notice:
-          "현재 결과는 테스트용 예시 차량군입니다. 실제 상담에서는 주행거리, 사고 여부, 옵션 기준으로 더 좁혀서 안내됩니다.",
-        cars: [
-          {
-            name: "2021 기아 셀토스",
-            desc: "실속형 SUV로 많이 비교되는 대표 차종",
-            points: "SUV / 실용성 / 젊은층 선호",
-            price: "예시 시세 1,700~2,000만원"
-          },
-          {
-            name: "2021 현대 아반떼 CN7",
-            desc: "연식과 상품성이 좋은 준중형 세단 비교군",
-            points: "출퇴근 / 연비 / 디자인",
-            price: "예시 시세 1,500~1,950만원"
-          },
-          {
-            name: "2020 현대 쏘나타 DN8",
-            desc: "중형 세단으로 승차감과 공간을 함께 보기 좋은 차량",
-            points: "중형세단 / 공간 / 승차감",
-            price: "예시 시세 1,600~2,000만원"
-          }
-        ]
-      },
-      "2,000~3,000만원": {
-        range: "예시 비교 구간: 2,100만원 ~ 3,100만원",
-        answer:
-          "2,000~3,000만원 예산이면 국산 SUV와 준대형 세단까지 비교할 수 있는 구간입니다. 예산 안에서도 차량 상태, 옵션, 용도에 따라 만족도가 크게 달라질 수 있습니다.",
-        notice:
-          "테스트용 결과이므로 실제 매물 연동 전 기준의 예시 시세와 차량군입니다.",
-        cars: [
-          {
-            name: "2022 현대 투싼 NX4",
-            desc: "가족용과 출퇴근 겸용으로 많이 비교되는 SUV",
-            points: "SUV / 디자인 / 활용도",
-            price: "예시 시세 2,400~2,900만원"
-          },
-          {
-            name: "2021 기아 쏘렌토 MQ4",
-            desc: "패밀리 SUV 수요에서 많이 언급되는 대표 비교군",
-            points: "가족용 / 공간 / 적재성",
-            price: "예시 시세 2,700~3,100만원"
-          },
-          {
-            name: "2021 현대 그랜저 IG",
-            desc: "준대형 세단으로 승차감과 상품성을 같이 보기 좋은 차량",
-            points: "세단 / 승차감 / 옵션",
-            price: "예시 시세 2,300~2,900만원"
-          }
-        ]
-      },
-      "3,000만원 이상": {
-        range: "예시 비교 구간: 2,700만원 ~ 3,500만원+",
-        answer:
-          "3,000만원 이상 예산이면 국산 상위급 세단과 SUV는 물론 일부 수입차까지 함께 비교할 수 있습니다. 다만 수입차는 구매가보다 정비 이력과 유지비를 같이 보는 것이 중요합니다.",
-        notice:
-          "현재는 실매물 연동 전 테스트 단계라, 이 예산대에서 많이 비교되는 차량군을 예시로 보여드립니다.",
-        cars: [
-          {
-            name: "2022 현대 그랜저",
-            desc: "3,000만원대에서 많이 비교되는 준대형 세단",
-            points: "승차감 / 옵션 / 출퇴근+가족용",
-            price: "예시 시세 2,900~3,300만원"
-          },
-          {
-            name: "2021 기아 쏘렌토",
-            desc: "가족용 SUV 수요가 높은 대표 비교군",
-            points: "공간 / 적재성 / 활용도",
-            price: "예시 시세 2,800~3,400만원"
-          },
-          {
-            name: "2019 BMW 5시리즈",
-            desc: "수입 세단을 함께 비교할 때 자주 나오는 예시 차량군",
-            points: "브랜드 / 주행감 / 유지비 체크",
-            price: "예시 시세 2,700~3,300만원"
-          }
-        ]
-      }
-    };
+    const quickButtons = document.querySelectorAll('[data-quick]');
 
     function getSessionId() {
       let sessionId = sessionStorage.getItem(SESSION_KEY);
@@ -1343,233 +756,320 @@ html = r'''<!DOCTYPE html>
       try {
         await fetch(LOG_ENDPOINT, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify({
-            sheetName,
-            rows
-          })
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ sheetName, rows })
         });
       } catch (e) {
         console.error('log send failed', e);
       }
     }
 
-    function pushLocalLog(type) {
-      const prev = JSON.parse(localStorage.getItem('carmatch_logs') || '[]');
-      prev.unshift({
-        type,
-        budget: selectedBudget,
-        carType: selectedType,
-        time: new Date().toISOString()
-      });
-      localStorage.setItem('carmatch_logs', JSON.stringify(prev.slice(0, 100)));
-    }
-
-    function getCurrentPageName() {
-      const hash = window.location.hash || '#home';
-      if (hash === '#guides') return 'guides';
-      if (hash === '#flow') return 'flow';
-      return 'home';
-    }
-
-    function getDeviceType() {
-      return window.innerWidth <= 768 ? 'mobile' : 'desktop';
-    }
-
-    function getReferrerValue() {
-      return document.referrer || 'direct';
-    }
-
     async function pushEntryLog() {
       const alreadySent = sessionStorage.getItem(ENTRY_SENT_KEY);
       if (alreadySent) return;
-
       sessionStorage.setItem(ENTRY_SENT_KEY, 'true');
 
       await sendLog('entry_log', [
         new Date().toISOString(),
         sessionId,
         window.location.pathname + window.location.hash,
-        getReferrerValue(),
+        document.referrer || 'direct',
         navigator.userAgent,
-        getDeviceType()
+        window.innerWidth <= 768 ? 'mobile' : 'desktop'
       ]);
     }
 
-    async function pushPageViewLog(pageName) {
+    async function pushPageViewLog() {
       await sendLog('page_view_log', [
         new Date().toISOString(),
         sessionId,
-        pageName,
+        'free_chat_consult',
         window.location.href
       ]);
     }
 
-    async function pushConversionLog(type) {
-      const now = new Date().toISOString();
-
-      pushLocalLog(type);
-
+    async function pushConversionLog(type, question = '') {
       await sendLog('conversion_log', [
-        now,
+        new Date().toISOString(),
         type,
-        selectedBudget || '',
-        selectedType || '',
+        question,
         window.location.href,
         navigator.userAgent
       ]);
     }
 
-    async function pushInquiryLog() {
+    async function pushInquiryLog(name, phone, question) {
       await sendLog('inquiry_log', [
         new Date().toISOString(),
-        nameInput.value.trim(),
-        phoneInput.value.trim(),
-        selectedBudget || '',
-        selectedType || '',
+        name,
+        phone,
+        question,
         window.location.href
       ]);
     }
 
-    async function openConsult() {
-      modal.classList.add('show');
-      await pushConversionLog('open_consult');
+    function appendUserMessage(text) {
+      const row = document.createElement('div');
+      row.className = 'message-row user';
+      row.innerHTML = `
+        <div class="avatar">🙂</div>
+        <div class="bubble">${escapeHtml(text)}</div>
+      `;
+      messages.appendChild(row);
+      scrollMessages();
     }
 
-    function closeConsultModal() {
-      modal.classList.remove('show');
+    function appendBotMessage(text) {
+      const row = document.createElement('div');
+      row.className = 'message-row bot';
+      row.innerHTML = `
+        <div class="avatar">🤖</div>
+        <div class="bubble">${escapeHtml(text)}</div>
+      `;
+      messages.appendChild(row);
+      scrollMessages();
     }
 
-    function renderSampleCars(cars) {
-      sampleCarsGrid.innerHTML = cars.map((car) => {
-        return `
-          <div class="sample-car-card">
-            <div class="sample-car-top">
-              <div>
-                <p class="sample-car-name">${car.name}</p>
-                <p class="sample-car-desc">${car.desc}</p>
+    function appendResultCard(payload) {
+      const wrap = document.createElement('div');
+      wrap.className = 'result-card';
+      wrap.innerHTML = `
+        <div class="result-section">
+          <p class="block-label">AI 답변</p>
+          <p class="block-copy">${escapeHtml(payload.answer)}</p>
+        </div>
+
+        <div class="result-section">
+          <p class="block-label">예산대 참고 시세</p>
+          <p class="block-copy">${escapeHtml(payload.range)}</p>
+        </div>
+
+        <div class="result-section">
+          <p class="block-label">예시 비교 차량</p>
+          <div class="sample-cars-grid">
+            ${payload.cars.map(car => `
+              <div class="sample-car-card">
+                <div class="sample-car-top">
+                  <div>
+                    <p class="sample-car-name">${escapeHtml(car.name)}</p>
+                    <p class="sample-car-desc">${escapeHtml(car.desc)}</p>
+                  </div>
+                  <span class="sample-chip">예시</span>
+                </div>
+                <div class="sample-car-points">${escapeHtml(car.points)}</div>
+                <div class="sample-car-price">${escapeHtml(car.price)}</div>
               </div>
-              <span class="sample-chip">예시</span>
-            </div>
-            <div class="sample-car-points">${car.points}</div>
-            <div class="sample-car-price">${car.price}</div>
+            `).join('')}
           </div>
-        `;
-      }).join('');
+        </div>
+
+        <div class="result-section">
+          <p class="block-label">후속 질문</p>
+          <div class="followup-grid">
+            ${payload.followups.map(item => `
+              <button class="followup-btn" data-followup="${escapeAttr(item)}">${escapeHtml(item)}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="result-section notice-box">
+          <p class="block-label">안내</p>
+          <p class="block-copy">${escapeHtml(payload.notice)}</p>
+        </div>
+
+        <div class="result-section">
+          <p class="block-label">상담 연결</p>
+          <div class="cta-grid">
+            <button class="save-btn">문의 저장 테스트</button>
+            <button class="kakao-btn">카카오톡으로 결과 받기</button>
+            <button class="call-btn">전화 상담 예약하기</button>
+          </div>
+        </div>
+      `;
+      messages.appendChild(wrap);
+      bindResultEvents(wrap, payload.originalQuestion);
+      scrollMessages();
     }
 
-    function updateResult() {
-      if (!selectedBudget || !selectedType) return;
+    function bindResultEvents(wrap, originalQuestion) {
+      wrap.querySelectorAll('.followup-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const text = btn.dataset.followup || '';
+          chatInput.value = text;
+          statusText.textContent = '후속 질문을 입력창에 반영했습니다.';
+          await pushConversionLog('select_followup_question', text);
+        });
+      });
 
-      const budgetData = SAMPLE_RESULT_DATA[selectedBudget];
+      const saveBtn = wrap.querySelector('.save-btn');
+      const kakaoBtn = wrap.querySelector('.kakao-btn');
+      const callBtn = wrap.querySelector('.call-btn');
 
-      resultBox.classList.add('show');
-      resultTitle.textContent = selectedBudget + ' / ' + selectedType + ' 추천 방향';
-      resultCopy.textContent =
-        selectedBudget + ' 예산에서 ' + selectedType +
-        '를 찾는다면, 사고 이력과 관리 상태, 향후 유지비를 함께 비교하는 방향이 좋습니다.';
+      saveBtn.addEventListener('click', async () => {
+        const name = prompt('이름을 입력해 주세요.', '') || '';
+        const phone = prompt('연락처를 입력해 주세요.', '') || '';
 
-      if (budgetData) {
-        aiAnswerText.textContent = budgetData.answer;
-        marketRangeText.textContent = budgetData.range;
-        noticeText.textContent = budgetData.notice;
-        renderSampleCars(budgetData.cars);
-      } else {
-        aiAnswerText.textContent = '입력한 조건 기준으로 많이 비교되는 차량군을 예시로 안내합니다.';
-        marketRangeText.textContent = '예시 비교 구간을 준비 중입니다.';
-        noticeText.textContent = '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다.';
-        renderSampleCars([]);
+        if (!name.trim() || !phone.trim()) {
+          statusText.textContent = '이름과 연락처를 입력해 주세요.';
+          return;
+        }
+
+        await pushInquiryLog(name.trim(), phone.trim(), originalQuestion);
+        await pushConversionLog('save_inquiry', originalQuestion);
+        statusText.textContent = '문의 저장 테스트가 기록되었습니다.';
+      });
+
+      kakaoBtn.addEventListener('click', async () => {
+        await pushConversionLog('click_kakao_consult', originalQuestion);
+        statusText.textContent = '카카오 상담 클릭 로그가 기록되었습니다.';
+      });
+
+      callBtn.addEventListener('click', async () => {
+        await pushConversionLog('click_call_consult', originalQuestion);
+        statusText.textContent = '전화 상담 클릭 로그가 기록되었습니다.';
+      });
+    }
+
+    function scrollMessages() {
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replaceAll('\n', ' ');
+    }
+
+    function normalizeQuestion(text) {
+      return text.trim().replace(/\s+/g, ' ');
+    }
+
+    function getMockResponse(question) {
+      const q = question.toLowerCase();
+
+      if (q.includes('3천') || q.includes('3000')) {
+        return {
+          answer: '3,000만원 전후 예산이면 국산 SUV와 준대형 세단은 선택폭이 넓고, 일부 수입 세단도 비교가 가능합니다. 실매물 연동 전 단계라 이 예산대에서 자주 비교되는 차량군을 예시로 안내해드립니다.',
+          range: '예시 비교 구간: 2,700만원 ~ 3,500만원+',
+          cars: [
+            { name: '2022 현대 그랜저', desc: '3,000만원대에서 많이 비교되는 준대형 세단', points: '승차감 / 옵션 / 출퇴근+가족용', price: '예시 시세 2,900~3,300만원' },
+            { name: '2021 기아 쏘렌토', desc: '가족용 SUV 수요가 높은 대표 비교군', points: '공간 / 적재성 / 활용도', price: '예시 시세 2,800~3,400만원' },
+            { name: '2019 BMW 5시리즈', desc: '수입 세단 비교군으로 자주 언급되는 예시', points: '브랜드 / 주행감 / 유지비 체크', price: '예시 시세 2,700~3,300만원' }
+          ],
+          followups: ['무사고 차량 위주로 다시 보기', 'SUV만 다시 비교해줘', '유지비 적은 차량으로 좁혀줘', '수입차 제외하고 다시 보여줘'],
+          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
+        };
       }
 
-      statusText.textContent = '예산과 차종 기준 결과가 준비되었습니다. 아래에서 상담 테스트를 이어갈 수 있습니다.';
+      if (q.includes('첫차')) {
+        return {
+          answer: '첫차는 가격만 보기보다 유지비, 보험료, 고장 리스크까지 함께 보는 것이 중요합니다. 현재는 첫차 기준으로 많이 비교되는 예시 차량군을 먼저 정리해드릴게요.',
+          range: '예시 비교 구간: 700만원 ~ 2,000만원',
+          cars: [
+            { name: '2017 현대 아반떼 AD', desc: '첫차와 출퇴근용으로 많이 비교되는 준중형 세단', points: '가성비 / 유지비 / 무난한 실사용', price: '예시 시세 700~950만원' },
+            { name: '2021 현대 아반떼 CN7', desc: '연식과 상품성이 좋은 첫차 비교군', points: '출퇴근 / 연비 / 디자인', price: '예시 시세 1,500~1,950만원' },
+            { name: '2021 기아 셀토스', desc: '첫차인데 SUV를 원하는 경우 많이 비교되는 차종', points: 'SUV / 실용성 / 시야 확보', price: '예시 시세 1,700~2,000만원' }
+          ],
+          followups: ['보험료 부담 적은 차로 다시 보기', '세단만 다시 보여줘', 'SUV도 같이 비교해줘', '무사고 위주로 추천해줘'],
+          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
+        };
+      }
+
+      if (q.includes('수입차')) {
+        return {
+          answer: '수입차는 구매가보다 정비 이력과 유지비를 함께 보는 것이 중요합니다. 현재는 비교 흐름 테스트용으로 자주 언급되는 예시 수입차를 보여드립니다.',
+          range: '예시 비교 구간: 2,000만원 ~ 3,500만원',
+          cars: [
+            { name: '2019 BMW 5시리즈', desc: '브랜드 만족도와 주행감을 같이 보는 대표 예시', points: '주행감 / 브랜드 / 유지비 체크', price: '예시 시세 2,700~3,300만원' },
+            { name: '2018 벤츠 E클래스', desc: '중고 수입 세단 비교 시 자주 나오는 예시 차량군', points: '브랜드 / 승차감 / 정비 이력', price: '예시 시세 2,800~3,500만원' },
+            { name: '2020 BMW 3시리즈', desc: '수입차 입문형 비교군으로 자주 언급되는 모델', points: '세단 / 주행감 / 접근성', price: '예시 시세 2,300~3,000만원' }
+          ],
+          followups: ['국산차도 같이 비교해줘', '유지비 적은 수입차로 좁혀줘', '세단만 다시 보여줘', '보증 가능성 기준도 알려줘'],
+          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
+        };
+      }
+
+      if (q.includes('suv') || q.includes('suv') || q.includes('suv') || q.includes('SUV')) {
+        return {
+          answer: 'SUV는 가족용과 출퇴근 겸용 수요가 많아 연식, 주행거리, 적재공간, 유지비를 함께 비교하는 것이 좋습니다. 현재는 자주 비교되는 예시 SUV를 안내해드립니다.',
+          range: '예시 비교 구간: 1,700만원 ~ 3,400만원',
+          cars: [
+            { name: '2021 기아 셀토스', desc: '실속형 SUV로 많이 비교되는 대표 차종', points: '실용성 / 젊은층 선호 / 도심 활용', price: '예시 시세 1,700~2,000만원' },
+            { name: '2022 현대 투싼 NX4', desc: '가족용과 출퇴근 겸용으로 많이 비교되는 SUV', points: '디자인 / 활용도 / 공간', price: '예시 시세 2,400~2,900만원' },
+            { name: '2021 기아 쏘렌토 MQ4', desc: '패밀리 SUV 수요에서 많이 언급되는 예시', points: '공간 / 적재성 / 가족용', price: '예시 시세 2,700~3,100만원' }
+          ],
+          followups: ['무사고 SUV만 다시 보여줘', '2천만원대 SUV만 보고 싶어', '유지비 적은 SUV 추천해줘', '세단과 같이 비교해줘'],
+          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
+        };
+      }
+
+      return {
+        answer: '입력하신 조건 기준으로 많이 비교되는 차량군을 먼저 정리했습니다. 현재는 실매물 연동 전 단계라 예시 시세와 예시 차량으로 흐름을 안내해드립니다.',
+        range: '예시 비교 구간: 1,000만원 ~ 3,000만원',
+        cars: [
+          { name: '2021 현대 아반떼 CN7', desc: '무난한 출퇴근용 비교군', points: '연비 / 디자인 / 실사용', price: '예시 시세 1,500~1,950만원' },
+          { name: '2022 현대 투싼 NX4', desc: 'SUV 비교 시 자주 나오는 대표 예시', points: '공간 / 활용도 / 디자인', price: '예시 시세 2,400~2,900만원' },
+          { name: '2021 현대 그랜저 IG', desc: '세단 선호 시 많이 비교되는 예시 차량군', points: '승차감 / 옵션 / 공간', price: '예시 시세 2,300~2,900만원' }
+        ],
+        followups: ['무사고 위주로 다시 보기', '예산 기준으로 다시 추천해줘', 'SUV만 다시 보여줘', '수입차도 포함해줘'],
+        notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
+      };
     }
 
-    openButtons.forEach(btn => {
-      btn.addEventListener('click', openConsult);
-    });
-
-    closeModal.addEventListener('click', closeConsultModal);
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeConsultModal();
-    });
-
-    budgetButtons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        budgetButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedBudget = btn.dataset.budget || '';
-        await pushConversionLog('select_budget');
-        updateResult();
-      });
-    });
-
-    typeButtons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        typeButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedType = btn.dataset.type || '';
-        await pushConversionLog('select_car_type');
-        updateResult();
-      });
-    });
-
-    saveBtn.addEventListener('click', async () => {
-      const name = nameInput.value.trim();
-      const phone = phoneInput.value.trim();
-
-      if (!name || !phone) {
-        statusText.textContent = '이름과 연락처를 입력해 주세요.';
+    async function submitQuestion(text) {
+      const question = normalizeQuestion(text);
+      if (!question) {
+        statusText.textContent = '질문을 입력해 주세요.';
         return;
       }
 
-      await pushInquiryLog();
-      await pushConversionLog('save_inquiry');
-      statusText.textContent = '문의 저장 테스트가 기록되었습니다.';
+      appendUserMessage(question);
+      chatInput.value = '';
+      statusText.textContent = '질문을 분석 중입니다.';
+      await pushConversionLog('send_free_chat_question', question);
+
+      const payload = getMockResponse(question);
+
+      appendBotMessage('질문 내용을 바탕으로 예산대 시세와 비교 차량군을 정리해드릴게요.');
+      appendResultCard({ ...payload, originalQuestion: question });
+
+      statusText.textContent = '자유형 상담 답변이 준비되었습니다.';
+    }
+
+    sendBtn.addEventListener('click', () => {
+      submitQuestion(chatInput.value);
     });
 
-    kakaoBtn.addEventListener('click', async () => {
-      await pushConversionLog('click_kakao_consult');
-      statusText.textContent = '카카오 상담 클릭 로그가 기록되었습니다.';
+    chatInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        submitQuestion(chatInput.value);
+      }
     });
 
-    callBtn.addEventListener('click', async () => {
-      await pushConversionLog('click_call_consult');
-      statusText.textContent = '전화 상담 클릭 로그가 기록되었습니다.';
-    });
-
-    followupButtons.forEach((button) => {
-      button.addEventListener('click', async () => {
-        const text = button.dataset.followup || '후속 질문 선택';
-        statusText.textContent = '후속 질문 선택: ' + text;
-        await pushConversionLog('select_followup_question');
+    quickButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const text = button.dataset.quick || '';
+        chatInput.value = text;
+        submitQuestion(text);
       });
-    });
-
-    document.querySelectorAll('[data-page]').forEach(link => {
-      link.addEventListener('click', async () => {
-        const pageName = link.dataset.page || 'home';
-        setTimeout(() => {
-          pushPageViewLog(pageName);
-        }, 50);
-      });
-    });
-
-    window.addEventListener('hashchange', () => {
-      pushPageViewLog(getCurrentPageName());
     });
 
     window.addEventListener('load', async () => {
       await pushEntryLog();
-      await pushPageViewLog(getCurrentPageName());
+      await pushPageViewLog();
     });
   </script>
 </body>
 </html>
 '''
 
-path = Path('/mnt/data/carmatch_full_final_test_ui.html')
+path = Path('/mnt/data/carmatch_free_ai_chat_ui.html')
 path.write_text(html, encoding='utf-8')
 print(f"Saved to {path}")
