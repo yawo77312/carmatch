@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -83,6 +85,17 @@
     }
 
     .nav a:hover { color: var(--blue); }
+
+    .mobile-menu {
+      display: none;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #dbe4f0;
+      background: white;
+      color: #334155;
+      font-weight: 800;
+    }
 
     .hero { padding: 28px 0 44px; }
 
@@ -606,6 +619,152 @@
       text-align: center;
     }
 
+    .ai-answer-box,
+    .market-range-box,
+    .notice-box,
+    .followup-box,
+    .sample-cars-wrap {
+      margin-top: 16px;
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .ai-answer-box {
+      background: #ffffff;
+      border: 1px solid #dbe7f5;
+    }
+
+    .market-range-box {
+      background: #eef6ff;
+      border: 1px solid #cfe3ff;
+    }
+
+    .notice-box {
+      background: #fff8e8;
+      border: 1px solid #f6df9c;
+    }
+
+    .sample-cars-wrap {
+      background: #ffffff;
+      border: 1px solid #dbe7f5;
+    }
+
+    .block-label {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #1d4ed8;
+    }
+
+    .ai-answer-text,
+    .market-range-text,
+    .notice-text {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #334155;
+    }
+
+    .sample-cars-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .sample-car-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 14px;
+      background: #f8fbff;
+    }
+
+    .sample-car-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sample-car-name {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.03em;
+    }
+
+    .sample-car-desc {
+      margin: 6px 0 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #64748b;
+    }
+
+    .sample-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .sample-car-points {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .sample-car-price {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 900;
+      color: #2563eb;
+    }
+
+    .followup-box {
+      background: #ffffff;
+      border: 1px solid #dbe7f5;
+    }
+
+    .followup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .followup-btn {
+      min-height: 46px;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 0 14px;
+      transition: 0.15s ease;
+    }
+
+    .followup-btn:hover {
+      background: #dbeafe;
+    }
+
+    .result-divider {
+      margin-top: 16px;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
     @media (max-width: 980px) {
       .hero-grid { grid-template-columns: 1fr; }
       .hero h1 { font-size: 52px; }
@@ -713,7 +872,8 @@
       .flow-grid,
       .budget-grid,
       .type-grid,
-      .inquiry-grid {
+      .inquiry-grid,
+      .followup-grid {
         grid-template-columns: 1fr;
       }
 
@@ -755,11 +915,17 @@
       }
 
       .type-btn span,
-      .result-copy {
-        font-size: 14px;
+      .result-copy,
+      .ai-answer-text,
+      .market-range-text,
+      .notice-text,
+      .sample-car-desc,
+      .sample-car-points {
+        font-size: 13px;
       }
 
       .result-title { font-size: 19px; }
+      .sample-car-name { font-size: 15px; }
 
       .save-btn,
       .kakao-btn,
@@ -963,6 +1129,40 @@
           <h3 class="result-title" id="resultTitle">추천 방향</h3>
           <p class="result-copy" id="resultCopy"></p>
 
+          <div class="ai-answer-box">
+            <p class="block-label">AI 답변</p>
+            <p class="ai-answer-text" id="aiAnswerText"></p>
+          </div>
+
+          <div class="market-range-box">
+            <p class="block-label">예산대 참고 시세</p>
+            <p class="market-range-text" id="marketRangeText"></p>
+          </div>
+
+          <div class="sample-cars-wrap">
+            <p class="block-label">예시 비교 차량</p>
+            <div class="sample-cars-grid" id="sampleCarsGrid"></div>
+          </div>
+
+          <div class="followup-box">
+            <p class="block-label">후속 질문</p>
+            <div class="followup-grid">
+              <button class="followup-btn" data-followup="무사고 차량 위주로 다시 보기">무사고 차량 위주로 보기</button>
+              <button class="followup-btn" data-followup="SUV 중심으로 다시 보기">SUV 중심으로 다시 보기</button>
+              <button class="followup-btn" data-followup="유지비 적은 차량 위주로 보기">유지비 적은 차량 보기</button>
+              <button class="followup-btn" data-followup="수입차까지 포함해서 비교하기">수입차도 비교하기</button>
+            </div>
+          </div>
+
+          <div class="notice-box">
+            <p class="block-label">안내</p>
+            <p class="notice-text" id="noticeText">
+              현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.
+            </p>
+          </div>
+
+          <div class="result-divider"></div>
+
           <div class="inquiry-box">
             <div class="inquiry-grid">
               <input class="field" id="nameInput" type="text" placeholder="이름" />
@@ -1003,6 +1203,11 @@
     const resultTitle = document.getElementById('resultTitle');
     const resultCopy = document.getElementById('resultCopy');
     const statusText = document.getElementById('statusText');
+    const aiAnswerText = document.getElementById('aiAnswerText');
+    const marketRangeText = document.getElementById('marketRangeText');
+    const sampleCarsGrid = document.getElementById('sampleCarsGrid');
+    const noticeText = document.getElementById('noticeText');
+    const followupButtons = document.querySelectorAll('.followup-btn');
     const saveBtn = document.getElementById('saveBtn');
     const kakaoBtn = document.getElementById('kakaoBtn');
     const callBtn = document.getElementById('callBtn');
@@ -1011,6 +1216,117 @@
 
     let selectedBudget = '';
     let selectedType = '';
+
+    const SAMPLE_RESULT_DATA = {
+      "1,000만원 이하": {
+        range: "예시 비교 구간: 500만원 ~ 1,000만원",
+        answer:
+          "1,000만원 이하 예산에서는 첫차, 출퇴근용, 유지비 부담이 낮은 차량 위주로 비교가 많습니다. 이 구간은 옵션보다 관리 상태와 소모품 이력이 더 중요합니다.",
+        notice:
+          "실매물 연동 전 테스트 단계라, 이 예산대에서 자주 비교되는 차량군을 예시로 보여드립니다.",
+        cars: [
+          {
+            name: "2017 현대 아반떼 AD",
+            desc: "첫차와 출퇴근용으로 많이 비교되는 대표 준중형 세단",
+            points: "가성비 / 유지비 / 무난한 실사용",
+            price: "예시 시세 700~950만원"
+          },
+          {
+            name: "2018 기아 K3",
+            desc: "연식과 가격 밸런스를 보기 좋은 준중형 비교군",
+            points: "디자인 / 실용성 / 출퇴근",
+            price: "예시 시세 750~1,000만원"
+          },
+          {
+            name: "2019 쉐보레 더 넥스트 스파크",
+            desc: "도심 주행과 유지비 중심으로 자주 비교되는 경차",
+            points: "도심주행 / 주차편의 / 낮은 유지비",
+            price: "예시 시세 500~850만원"
+          }
+        ]
+      },
+      "1,000~2,000만원": {
+        range: "예시 비교 구간: 1,100만원 ~ 2,000만원",
+        answer:
+          "1,000~2,000만원 예산이면 사회초년생 첫차, 실속형 SUV, 준중형 세단까지 비교 폭이 넓어집니다. 가격뿐 아니라 사고이력과 실제 관리 상태를 함께 보는 것이 좋습니다.",
+        notice:
+          "현재 결과는 테스트용 예시 차량군입니다. 실제 상담에서는 주행거리, 사고 여부, 옵션 기준으로 더 좁혀서 안내됩니다.",
+        cars: [
+          {
+            name: "2021 기아 셀토스",
+            desc: "실속형 SUV로 많이 비교되는 대표 차종",
+            points: "SUV / 실용성 / 젊은층 선호",
+            price: "예시 시세 1,700~2,000만원"
+          },
+          {
+            name: "2021 현대 아반떼 CN7",
+            desc: "연식과 상품성이 좋은 준중형 세단 비교군",
+            points: "출퇴근 / 연비 / 디자인",
+            price: "예시 시세 1,500~1,950만원"
+          },
+          {
+            name: "2020 현대 쏘나타 DN8",
+            desc: "중형 세단으로 승차감과 공간을 함께 보기 좋은 차량",
+            points: "중형세단 / 공간 / 승차감",
+            price: "예시 시세 1,600~2,000만원"
+          }
+        ]
+      },
+      "2,000~3,000만원": {
+        range: "예시 비교 구간: 2,100만원 ~ 3,100만원",
+        answer:
+          "2,000~3,000만원 예산이면 국산 SUV와 준대형 세단까지 비교할 수 있는 구간입니다. 예산 안에서도 차량 상태, 옵션, 용도에 따라 만족도가 크게 달라질 수 있습니다.",
+        notice:
+          "테스트용 결과이므로 실제 매물 연동 전 기준의 예시 시세와 차량군입니다.",
+        cars: [
+          {
+            name: "2022 현대 투싼 NX4",
+            desc: "가족용과 출퇴근 겸용으로 많이 비교되는 SUV",
+            points: "SUV / 디자인 / 활용도",
+            price: "예시 시세 2,400~2,900만원"
+          },
+          {
+            name: "2021 기아 쏘렌토 MQ4",
+            desc: "패밀리 SUV 수요에서 많이 언급되는 대표 비교군",
+            points: "가족용 / 공간 / 적재성",
+            price: "예시 시세 2,700~3,100만원"
+          },
+          {
+            name: "2021 현대 그랜저 IG",
+            desc: "준대형 세단으로 승차감과 상품성을 같이 보기 좋은 차량",
+            points: "세단 / 승차감 / 옵션",
+            price: "예시 시세 2,300~2,900만원"
+          }
+        ]
+      },
+      "3,000만원 이상": {
+        range: "예시 비교 구간: 2,700만원 ~ 3,500만원+",
+        answer:
+          "3,000만원 이상 예산이면 국산 상위급 세단과 SUV는 물론 일부 수입차까지 함께 비교할 수 있습니다. 다만 수입차는 구매가보다 정비 이력과 유지비를 같이 보는 것이 중요합니다.",
+        notice:
+          "현재는 실매물 연동 전 테스트 단계라, 이 예산대에서 많이 비교되는 차량군을 예시로 보여드립니다.",
+        cars: [
+          {
+            name: "2022 현대 그랜저",
+            desc: "3,000만원대에서 많이 비교되는 준대형 세단",
+            points: "승차감 / 옵션 / 출퇴근+가족용",
+            price: "예시 시세 2,900~3,300만원"
+          },
+          {
+            name: "2021 기아 쏘렌토",
+            desc: "가족용 SUV 수요가 높은 대표 비교군",
+            points: "공간 / 적재성 / 활용도",
+            price: "예시 시세 2,800~3,400만원"
+          },
+          {
+            name: "2019 BMW 5시리즈",
+            desc: "수입 세단을 함께 비교할 때 자주 나오는 예시 차량군",
+            points: "브랜드 / 주행감 / 유지비 체크",
+            price: "예시 시세 2,700~3,300만원"
+          }
+        ]
+      }
+    };
 
     function getSessionId() {
       let sessionId = sessionStorage.getItem(SESSION_KEY);
@@ -1126,15 +1442,48 @@
       modal.classList.remove('show');
     }
 
+    function renderSampleCars(cars) {
+      sampleCarsGrid.innerHTML = cars.map((car) => {
+        return `
+          <div class="sample-car-card">
+            <div class="sample-car-top">
+              <div>
+                <p class="sample-car-name">${car.name}</p>
+                <p class="sample-car-desc">${car.desc}</p>
+              </div>
+              <span class="sample-chip">예시</span>
+            </div>
+            <div class="sample-car-points">${car.points}</div>
+            <div class="sample-car-price">${car.price}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function updateResult() {
       if (!selectedBudget || !selectedType) return;
+
+      const budgetData = SAMPLE_RESULT_DATA[selectedBudget];
 
       resultBox.classList.add('show');
       resultTitle.textContent = selectedBudget + ' / ' + selectedType + ' 추천 방향';
       resultCopy.textContent =
         selectedBudget + ' 예산에서 ' + selectedType +
-        '를 찾는다면, 사고 이력과 관리 상태, 향후 유지비를 함께 비교하는 방향이 좋습니다. ' +
-        '실매물 연동 전 단계에서는 예시 차량과 구매 체크포인트 중심으로 흐름을 먼저 확인할 수 있습니다.';
+        '를 찾는다면, 사고 이력과 관리 상태, 향후 유지비를 함께 비교하는 방향이 좋습니다.';
+
+      if (budgetData) {
+        aiAnswerText.textContent = budgetData.answer;
+        marketRangeText.textContent = budgetData.range;
+        noticeText.textContent = budgetData.notice;
+        renderSampleCars(budgetData.cars);
+      } else {
+        aiAnswerText.textContent = '입력한 조건 기준으로 많이 비교되는 차량군을 예시로 안내합니다.';
+        marketRangeText.textContent = '예시 비교 구간을 준비 중입니다.';
+        noticeText.textContent = '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다.';
+        renderSampleCars([]);
+      }
+
+      statusText.textContent = '예산과 차종 기준 결과가 준비되었습니다. 아래에서 상담 테스트를 이어갈 수 있습니다.';
     }
 
     openButtons.forEach(btn => {
@@ -1191,6 +1540,14 @@
       statusText.textContent = '전화 상담 클릭 로그가 기록되었습니다.';
     });
 
+    followupButtons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const text = button.dataset.followup || '후속 질문 선택';
+        statusText.textContent = '후속 질문 선택: ' + text;
+        await pushConversionLog('select_followup_question');
+      });
+    });
+
     document.querySelectorAll('[data-page]').forEach(link => {
       link.addEventListener('click', async () => {
         const pageName = link.dataset.page || 'home';
@@ -1211,3 +1568,8 @@
   </script>
 </body>
 </html>
+'''
+
+path = Path('/mnt/data/carmatch_full_final_test_ui.html')
+path.write_text(html, encoding='utf-8')
+print(f"Saved to {path}")
