@@ -1297,13 +1297,13 @@ function normalizeApiPayload(payload) {
         </div>
       ` : '';
 
-      const answerBlock = data.ai_answer ? `
-        <div class="result-section">
-          <p class="block-label">AI 답변</p>
-          <p class="block-copy">${escapeHtml(data.ai_answer)}</p>
-        </div>
-      ` : '';
-
+   const answerText = data.ai_answer || data.message || '';
+const answerBlock = answerText ? `
+  <div class="result-section">
+    <p class="block-label">AI 답변</p>
+    <p class="block-copy">${escapeHtml(answerText)}</p>
+  </div>
+` : '';
       card.innerHTML = `
         ${summaryBlock}
         ${answerBlock}
