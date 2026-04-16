@@ -456,29 +456,19 @@
 
     .cta-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 10px;
       margin-top: 12px;
     }
 
-    .primary-btn,
-    .secondary-btn {
+    .primary-btn {
       height: 52px;
       border-radius: 18px;
       font-size: 15px;
       font-weight: 900;
-    }
-
-    .primary-btn {
       background: var(--blue);
       color: white;
       box-shadow: 0 10px 24px rgba(37,99,235,0.16);
-    }
-
-    .secondary-btn {
-      background: white;
-      border: 1px solid #dbe4f0;
-      color: #0f172a;
     }
 
     .input-area {
@@ -870,7 +860,7 @@
             <ul class="guide-list">
               <li>구체적인 질문은 바로 <code>/chat</code> 호출</li>
               <li>브랜드만 입력돼도 백엔드가 2차 질문 구조를 반환하면 그대로 렌더링</li>
-              <li>문의하기는 이름/연락처/조건 요약을 저장하고 후속 상담으로 연결</li>
+              <li>문의하기는 웹에서는 연락처 팝업, 모바일에서는 바로 전화 연결되며 /inquiry 저장도 지원</li>
             </ul>
           </div>
         </div>
@@ -915,7 +905,7 @@
               </div>
 
               <div class="status-bar" id="statusText">
-                백엔드 연결 전에는 CHAT_API_URL만 실제 Cloud Run 주소로 바꿔주세요.
+                현재 백엔드 /chat, /inquiry 연결형 구조입니다. 후속 질문은 버튼 클릭 시 바로 전송됩니다.
               </div>
             </div>
           </div>
@@ -964,17 +954,15 @@
         <div>
           <h3 class="modal-title">문의하기</h3>
           <p class="modal-desc">
-            마지막 질문과 AI 추천 요약을 함께 남겨 상담으로 이어지게 할 수 있습니다.
+            마지막 질문과 AI 요약을 함께 저장해 상담으로 이어지게 할 수 있습니다.
           </p>
         </div>
         <button class="modal-close" id="closeModalBtn">✕</button>
       </div>
 
       <div class="form-grid">
-        <input class="field" id="nameInput" type="text" placeholder="이름" />
-        <input class="field" id="phoneInput" type="tel" placeholder="연락처 (예: 010-1234-5678)" />
-        <input class="field" id="budgetInput" type="text" placeholder="예산 (선택)" />
-        <input class="field" id="carTypeInput" type="text" placeholder="차종 / 브랜드 (선택)" />
+        <input class="field" id="nameInput" type="text" placeholder="이름 (선택)" />
+        <input class="field" id="phoneInput" type="tel" placeholder="연락처 (선택)" />
         <textarea class="field" id="memoInput" placeholder="추가 요청사항 (선택)"></textarea>
       </div>
 
@@ -984,18 +972,19 @@
       <button class="submit-btn" id="submitInquiryBtn">문의 저장하기</button>
 
       <div class="success-box" id="successBox">
-        문의가 저장되었습니다. 실제 운영 시 여기서 카카오 상담, 전화 연결, CRM 전달까지 붙이면 됩니다.
+        문의가 저장되었습니다.<br />
+        웹에서는 연락처 팝업, 모바일에서는 바로 전화 연결 흐름으로 이어질 수 있습니다.
       </div>
     </div>
   </div>
 
   <script>
     const CONFIG = {
-      CHAT_API_URL: 'https://carmatch-ai-chat-api-155876561918.asia-northeast3.run.app/chat',
+      CHAT_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app/chat',
+      INQUIRY_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app/inquiry',
       LOG_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxYY8w-5Ytv6hIir4X-fSTuJ0GUnKxGCp2GvvU74k5NhCJqakEF9gGXfkJOsY-IfmHASA/exec',
-      KAKAO_URL: '#',
-      PURCHASE_URL: '#',
-      PHONE_NUMBER: '010-7558-2039'
+      PHONE_NUMBER: '010-7558-2039',
+      CONTACT_DISPLAY: '010-7558-2039'
     };
 
     const SESSION_KEY = 'carmatch_session_id';
@@ -1016,8 +1005,6 @@
 
     const nameInput = document.getElementById('nameInput');
     const phoneInput = document.getElementById('phoneInput');
-    const budgetInput = document.getElementById('budgetInput');
-    const carTypeInput = document.getElementById('carTypeInput');
     const memoInput = document.getElementById('memoInput');
 
     let lastUserMessage = '';
@@ -1138,82 +1125,64 @@
     }
 
 function normalizeApiPayload(payload) {
-  if (!payload) {
-    return {
-      message: '응답 형식을 읽지 못했습니다.',
-      summary: '',
-      ai_answer: '',
-      market_range: '',
-      notice: '',
-      cars: [],
-      followups: [],
-      cta: ['문의하기', '구매하기'],
-      needs_followup: false,
-      raw: payload
-    };
-  }
+      if (!payload) {
+        return {
+          type: 'recommendation',
+          message: '응답 형식을 읽지 못했습니다.',
+          summary: '',
+          ai_answer: '',
+          market_range: '',
+          notice: '',
+          cars: [],
+          followups: [],
+          cta: ['문의하기'],
+          needs_followup: false,
+          raw: payload
+        };
+      }
 
-  if (typeof payload === 'string') {
-    return {
-      message: '추천 내용을 정리해드릴게요.',
-      summary: '',
-      ai_answer: payload,
-      market_range: '',
-      notice: '',
-      cars: [],
-      followups: [],
-      cta: ['문의하기', '구매하기'],
-      needs_followup: false,
-      raw: payload
-    };
-  }
+      if (typeof payload === 'string') {
+        return {
+          type: 'recommendation',
+          message: '추천 내용을 정리해드릴게요.',
+          summary: '',
+          ai_answer: payload,
+          market_range: '',
+          notice: '',
+          cars: [],
+          followups: [],
+          cta: ['문의하기'],
+          needs_followup: false,
+          raw: payload
+        };
+      }
 
-  const message =
-    payload.message ||
-    payload.reply ||
-    payload.text ||
-    payload.result ||
-    payload.summary ||
-    '추천 내용을 정리해드릴게요.';
-
-  const aiAnswer =
-    payload.ai_answer ||
-    payload.answer ||
-    payload.aiResponse ||
-    payload.response ||
-    payload.reply ||
-    payload.text ||
-    payload.result ||
-    '';
-
-  const summary =
-    payload.summary ||
-    payload.one_line ||
-    payload.title ||
-    '';
-
-  return {
-    message,
-    summary,
-    ai_answer: aiAnswer,
-    market_range: payload.market_range || payload.market || '',
-    notice: payload.notice || payload.tip || '',
-    cars: Array.isArray(payload.cars) ? payload.cars : [],
-    followups: Array.isArray(payload.followups) ? payload.followups : [],
-    cta: Array.isArray(payload.cta) ? payload.cta : ['문의하기', '구매하기'],
-    needs_followup: Boolean(payload.needs_followup),
-    raw: payload
-  };
-}
       return {
-        message: payload.message || payload.reply || payload.summary || '조건을 기준으로 추천 방향을 정리해드릴게요.',
+        type: payload.type || 'recommendation',
+        message:
+          payload.message ||
+          payload.reply ||
+          payload.text ||
+          payload.result ||
+          payload.summary ||
+          payload.ai_answer ||
+          payload.answer ||
+          '추천 내용을 정리해드릴게요.',
         summary: payload.summary || payload.one_line || payload.title || '',
-        ai_answer: payload.ai_answer || payload.answer || payload.description || '',
-        market_range: payload.market_range || payload.market || '',
+        ai_answer:
+          payload.ai_answer ||
+          payload.answer ||
+          payload.aiResponse ||
+          payload.response ||
+          payload.reply ||
+          payload.text ||
+          payload.result ||
+          '',
+        market_range: payload.market_range || payload.price_range || payload.market || '',
         notice: payload.notice || payload.tip || '',
         cars: Array.isArray(payload.cars) ? payload.cars : [],
         followups: Array.isArray(payload.followups) ? payload.followups : [],
-        cta: Array.isArray(payload.cta) ? payload.cta : ['문의하기', '구매하기'],
+        cta: Array.isArray(payload.cta) && payload.cta.length ? payload.cta : ['문의하기'],
         needs_followup: Boolean(payload.needs_followup),
         raw: payload
       };
@@ -1315,7 +1284,6 @@ const answerBlock = answerText ? `
           <p class="block-label">다음 단계</p>
           <div class="cta-grid">
             <button class="primary-btn" id="inquiryBtn">문의하기</button>
-            <button class="secondary-btn" id="purchaseBtn">구매하기</button>
           </div>
         </div>
       `;
@@ -1326,65 +1294,48 @@ const answerBlock = answerText ? `
       card.querySelectorAll('[data-followup]').forEach(btn => {
         btn.addEventListener('click', () => {
           const text = btn.textContent.trim();
-          chatInput.value = text;
-          chatInput.focus();
           logConversion('click_followup');
+          sendMessage(text);
         });
       });
 
       card.querySelector('#inquiryBtn').addEventListener('click', () => {
-        openInquiryModal();
+        handleInquiryAction();
         logConversion('click_inquiry');
-      });
-
-      card.querySelector('#purchaseBtn').addEventListener('click', () => {
-        logConversion('click_purchase');
-        if (CONFIG.PURCHASE_URL && CONFIG.PURCHASE_URL !== '#') {
-          window.open(CONFIG.PURCHASE_URL, '_blank');
-          return;
-        }
-        if (CONFIG.KAKAO_URL && CONFIG.KAKAO_URL !== '#') {
-          window.open(CONFIG.KAKAO_URL, '_blank');
-          return;
-        }
-        if (CONFIG.PHONE_NUMBER && CONFIG.PHONE_NUMBER !== '010-0000-0000') {
-          window.location.href = 'tel:' + CONFIG.PHONE_NUMBER.replace(/-/g, '');
-          return;
-        }
-        statusText.textContent = '구매하기 연결 URL 또는 전화번호를 설정해 주세요.';
       });
     }
 
     function getFallbackPayload(query) {
-      const lowered = query.toLowerCase();
-      const brandKeywords = ['bmw', '벤츠', '아우디', '현대', '기아', '제네시스', '렉서스', '테슬라'];
-      const hasBrand = brandKeywords.some(v => lowered.includes(v));
-      const hasType = ['suv', '세단', '경차', '쿠페', '해치백'].some(v => lowered.includes(v));
+      const lowered = (query || '').toLowerCase();
+      const hasBrand = ['bmw', '벤츠', '아우디', '현대', '기아', '제네시스', '렉서스', '테슬라', '미니'].some(v => lowered.includes(v.toLowerCase()));
+      const hasType = ['suv', '세단', '경차', '쿠페', '해치백', '왜건'].some(v => lowered.includes(v.toLowerCase()));
 
       if (hasBrand && !hasType) {
         return normalizeApiPayload({
-          message: '브랜드 기준으로 보고 계시네요. 차종을 한 번 더 좁혀주시면 더 빨라집니다.',
-          summary: '브랜드만 입력된 질문입니다.',
-          ai_answer: '세단 / SUV / 해치백·쿠페 / 상관없음 중 하나를 더 알려주시면 바로 추천 방향을 정리할 수 있습니다.',
-          followups: ['세단으로 볼게', 'SUV로 볼게', '상관없어'],
+          type: 'followup',
+          summary: '브랜드는 확인됐고 차종이 아직 없습니다.',
+          ai_answer: '세단 / SUV 중 어떤 쪽인지 알려주시면 더 빠르게 정리할 수 있어요.',
+          followups: ['세단', 'SUV', '상관없어'],
+          notice: '브랜드만 있는 질문은 차종을 한 번 더 확인한 뒤 추천하는 것이 자연스럽습니다.',
           needs_followup: true,
-          cta: ['문의하기', '구매하기']
+          cta: ['문의하기']
         });
       }
 
       return normalizeApiPayload({
-        message: '조건을 기준으로 추천 방향을 먼저 정리해드릴게요.',
-        summary: '백엔드 URL이 비어 있어 임시 예시 응답을 보여주고 있습니다.',
-        ai_answer: '실제 운영 시에는 Cloud Run /chat 응답이 여기 그대로 표시됩니다. 현재 구조는 프론트 배포 테스트와 UI 확인용으로 유지됩니다.',
-        market_range: '예산 상단을 500~800만원 정도 열어두면 선택 폭이 더 자연스러울 수 있습니다.',
-        notice: 'CONFIG.CHAT_API_URL에 실제 Cloud Run /chat 주소를 넣으면 이 예시 응답 대신 백엔드 응답이 노출됩니다.',
+        type: 'recommendation',
+        summary: '백엔드 연결 전 예시 응답입니다.',
+        ai_answer: '실제 운영 시에는 현재 연결된 Cloud Run /chat 응답이 그대로 반영됩니다.',
+        market_range: '예산과 차종이 함께 있으면 추천 정확도가 높아집니다.',
+        notice: 'CHAT_API_URL이 정상 연결되면 이 예시 응답 대신 실제 응답이 노출됩니다.',
         cars: [
-          { name: '조건 맞춤 후보 1', desc: '실매물 연동 전 예시 카드', points: 'UI 구조 확인용 기본 카드입니다.', price: '상담 후 구체 안내' },
-          { name: '조건 맞춤 후보 2', desc: '차종 / 예산 기준 예시', points: '백엔드 연결 전까지 화면 검증에 사용합니다.', price: '상담 후 구체 안내' },
-          { name: '조건 맞춤 후보 3', desc: '대안 비교 카드', points: '실제 API 응답에서는 여기에 추천 차량이 들어갑니다.', price: '상담 후 구체 안내' }
+          { name: '조건 맞춤 후보 1', desc: '실매물 연동 전 예시 카드', points: 'UI 구조 확인용 기본 카드입니다.', price: '예시' },
+          { name: '조건 맞춤 후보 2', desc: '차종 / 예산 기준 예시', points: '백엔드 연결 전까지 화면 검증에 사용합니다.', price: '예시' },
+          { name: '조건 맞춤 후보 3', desc: '대안 비교 카드', points: '실제 API 응답에서는 여기에 추천 차량이 들어갑니다.', price: '예시' }
         ],
         followups: ['무사고 기준으로 다시 보기', '유지비 적은 순으로 보기', '같은 예산 다른 차종 비교하기'],
-        cta: ['문의하기', '구매하기']
+        cta: ['문의하기'],
+        needs_followup: false
       });
     }
 
@@ -1438,6 +1389,19 @@ const answerBlock = answerText ? `
       }
     }
 
+    function isMobileDevice() {
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+    }
+
+    function handleInquiryAction() {
+      if (isMobileDevice()) {
+        logConversion('click_call');
+        window.location.href = 'tel:' + CONFIG.PHONE_NUMBER.replace(/-/g, '');
+        return;
+      }
+      openInquiryModal();
+    }
+
     function openInquiryModal() {
       successBox.classList.remove('show');
       formError.textContent = '';
@@ -1446,9 +1410,9 @@ const answerBlock = answerText ? `
 
       const aiSummary = lastAiPayload?.summary || '';
       const aiAnswer = lastAiPayload?.ai_answer || '';
-      summaryHint.textContent = lastUserMessage
-        ? `마지막 질문: ${lastUserMessage}${aiSummary ? ' · AI 요약: ' + aiSummary : aiAnswer ? ' · AI 요약: ' + aiAnswer.slice(0, 80) : ''}`
-        : '질문 내용이 없으면 기본 문의로 저장됩니다.';
+      summaryHint.innerHTML = lastUserMessage
+        ? `마지막 질문: ${escapeHtml(lastUserMessage)}<br />${aiSummary ? 'AI 요약: ' + escapeHtml(aiSummary) : aiAnswer ? 'AI 요약: ' + escapeHtml(aiAnswer.slice(0, 80)) : ''}<br /><br />전화 문의: ${CONFIG.CONTACT_DISPLAY}`
+        : `전화 문의: ${CONFIG.CONTACT_DISPLAY}`;
     }
 
     function closeInquiryModal() {
@@ -1456,54 +1420,53 @@ const answerBlock = answerText ? `
       document.body.classList.remove('modal-open');
     }
 
-    function getBudgetGuess(text) {
-      const match = text.match(/(\d+\s*천|\d+\s*만원|\d{4,})/);
-      return match ? match[0].replace(/\s+/g, '') : '';
-    }
-
-    function getCarTypeGuess(text) {
-      const list = ['SUV', '세단', '경차', '쿠페', '해치백', 'BMW', '벤츠', '아우디', '현대', '기아', '제네시스', '렉서스'];
-      return list.find(v => text.toLowerCase().includes(v.toLowerCase())) || '';
-    }
-
     async function submitInquiry() {
       const name = nameInput.value.trim();
       const phone = phoneInput.value.trim();
-      const budget = budgetInput.value.trim() || getBudgetGuess(lastUserMessage);
-      const carType = carTypeInput.value.trim() || getCarTypeGuess(lastUserMessage);
       const memo = memoInput.value.trim();
 
-      if (!name || !phone) {
-        formError.textContent = '이름과 연락처는 꼭 입력해 주세요.';
-        return;
-      }
-
       formError.textContent = '';
-      logConversion('save_inquiry', { budget, carType });
-
       const aiSummary = lastAiPayload?.summary || lastAiPayload?.ai_answer || '';
-      const rows = [[
-        new Date().toISOString(),
-        sessionId,
-        name,
-        phone,
-        budget,
-        carType,
-        lastUserMessage || '',
-        aiSummary,
-        memo,
-        location.href
-      ]];
 
       try {
-        await sendSheetLog('inquiry_log', rows);
+        if (CONFIG.INQUIRY_API_URL) {
+          const response = await fetch(CONFIG.INQUIRY_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
+              name,
+              phone,
+              memo,
+              selectedAction: '문의하기',
+              source: 'web'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('inquiry api error: ' + response.status);
+          }
+        }
+
+        await sendSheetLog('inquiry_log', [[
+          new Date().toISOString(),
+          sessionId,
+          name,
+          phone,
+          '',
+          '',
+          lastUserMessage || '',
+          aiSummary,
+          memo,
+          location.href
+        ]]);
+
         successBox.classList.add('show');
         nameInput.value = '';
         phoneInput.value = '';
-        budgetInput.value = '';
-        carTypeInput.value = '';
         memoInput.value = '';
         statusText.textContent = '문의가 저장되었습니다.';
+        logConversion('save_inquiry');
       } catch (error) {
         console.error(error);
         formError.textContent = '문의 저장 중 오류가 발생했습니다.';
