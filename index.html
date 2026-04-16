@@ -1137,20 +1137,74 @@
       if (typingRow) typingRow.remove();
     }
 
-    function normalizeApiPayload(payload) {
-      if (!payload || typeof payload !== 'object') {
-        return {
-          message: '응답 형식을 읽지 못했습니다.',
-          summary: '',
-          ai_answer: '',
-          market_range: '',
-          notice: '',
-          cars: [],
-          followups: [],
-          cta: ['문의하기', '구매하기']
-        };
-      }
+function normalizeApiPayload(payload) {
+  if (!payload) {
+    return {
+      message: '응답 형식을 읽지 못했습니다.',
+      summary: '',
+      ai_answer: '',
+      market_range: '',
+      notice: '',
+      cars: [],
+      followups: [],
+      cta: ['문의하기', '구매하기'],
+      needs_followup: false,
+      raw: payload
+    };
+  }
 
+  if (typeof payload === 'string') {
+    return {
+      message: '추천 내용을 정리해드릴게요.',
+      summary: '',
+      ai_answer: payload,
+      market_range: '',
+      notice: '',
+      cars: [],
+      followups: [],
+      cta: ['문의하기', '구매하기'],
+      needs_followup: false,
+      raw: payload
+    };
+  }
+
+  const message =
+    payload.message ||
+    payload.reply ||
+    payload.text ||
+    payload.result ||
+    payload.summary ||
+    '추천 내용을 정리해드릴게요.';
+
+  const aiAnswer =
+    payload.ai_answer ||
+    payload.answer ||
+    payload.aiResponse ||
+    payload.response ||
+    payload.reply ||
+    payload.text ||
+    payload.result ||
+    '';
+
+  const summary =
+    payload.summary ||
+    payload.one_line ||
+    payload.title ||
+    '';
+
+  return {
+    message,
+    summary,
+    ai_answer: aiAnswer,
+    market_range: payload.market_range || payload.market || '',
+    notice: payload.notice || payload.tip || '',
+    cars: Array.isArray(payload.cars) ? payload.cars : [],
+    followups: Array.isArray(payload.followups) ? payload.followups : [],
+    cta: Array.isArray(payload.cta) ? payload.cta : ['문의하기', '구매하기'],
+    needs_followup: Boolean(payload.needs_followup),
+    raw: payload
+  };
+}
       return {
         message: payload.message || payload.reply || payload.summary || '조건을 기준으로 추천 방향을 정리해드릴게요.',
         summary: payload.summary || payload.one_line || payload.title || '',
