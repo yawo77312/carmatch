@@ -1,6 +1,4 @@
-from pathlib import Path
-
-html = r'''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -8,7 +6,7 @@ html = r'''<!DOCTYPE html>
   <title>카매치 | 자유형 AI 중고차 상담</title>
   <meta
     name="description"
-    content="자유롭게 차량 조건을 입력하면 AI가 예산대 시세와 예시 차량을 안내하는 카매치 상담형 테스트 페이지"
+    content="예산, 브랜드, 차종, 용도를 자유롭게 입력하면 카매치 AI가 추천 방향을 정리해주는 실제 운영형 상담 페이지"
   />
   <style>
     :root {
@@ -22,6 +20,9 @@ html = r'''<!DOCTYPE html>
       --bot: #f1f5f9;
       --user: #dbeafe;
       --white: #ffffff;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 24px 60px rgba(15,23,42,0.14);
     }
 
     * { box-sizing: border-box; }
@@ -31,6 +32,10 @@ html = r'''<!DOCTYPE html>
       font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
       color: var(--text);
       background: linear-gradient(180deg, #f7fbff 0%, #f3f7fc 100%);
+    }
+
+    body.modal-open {
+      overflow: hidden;
     }
 
     a { color: inherit; text-decoration: none; }
@@ -45,7 +50,7 @@ html = r'''<!DOCTYPE html>
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 20;
+      z-index: 30;
       background: rgba(255,255,255,0.92);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid #e7eef7;
@@ -78,6 +83,7 @@ html = r'''<!DOCTYPE html>
       place-items: center;
       font-size: 20px;
       box-shadow: 0 8px 20px rgba(37,99,235,0.2);
+      flex: 0 0 auto;
     }
 
     .nav {
@@ -91,7 +97,7 @@ html = r'''<!DOCTYPE html>
     .nav a:hover { color: var(--blue); }
 
     .hero {
-      padding: 28px 0 24px;
+      padding: 30px 0 24px;
     }
 
     .hero-grid {
@@ -123,7 +129,7 @@ html = r'''<!DOCTYPE html>
 
     .guide-card {
       margin-top: 32px;
-      max-width: 500px;
+      max-width: 520px;
       background: rgba(255,255,255,0.96);
       border: 3px solid var(--blue);
       border-radius: 24px;
@@ -145,11 +151,29 @@ html = r'''<!DOCTYPE html>
       font-size: 15px;
     }
 
+    .guide-list {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .guide-list li {
+      border-radius: 14px;
+      background: #f8fbff;
+      border: 1px solid #e3edf8;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: #334155;
+      font-weight: 700;
+    }
+
     .chat-shell {
       background: white;
       border-radius: 28px;
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(15,23,42,0.14);
+      box-shadow: var(--shadow);
       border: 1px solid #e5edf7;
     }
 
@@ -195,6 +219,16 @@ html = r'''<!DOCTYPE html>
       line-height: 1.4;
     }
 
+    .top-chip {
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.22);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .chat-body {
       background: #f8fafc;
       padding: 18px;
@@ -207,6 +241,7 @@ html = r'''<!DOCTYPE html>
       max-height: 620px;
       overflow: auto;
       padding-right: 4px;
+      scroll-behavior: smooth;
     }
 
     .message-row {
@@ -255,6 +290,29 @@ html = r'''<!DOCTYPE html>
       color: #1e3a8a;
     }
 
+    .typing {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      height: 18px;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+      animation: blink 1.2s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { transform: scale(.75); opacity: .45; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
     .result-card {
       margin-left: 50px;
       margin-top: 4px;
@@ -265,9 +323,7 @@ html = r'''<!DOCTYPE html>
       box-shadow: 0 10px 24px rgba(148,163,184,0.12);
     }
 
-    .result-section + .result-section {
-      margin-top: 14px;
-    }
+    .result-section + .result-section { margin-top: 14px; }
 
     .block-label {
       margin: 0 0 8px;
@@ -282,6 +338,29 @@ html = r'''<!DOCTYPE html>
       font-size: 14px;
       line-height: 1.75;
       color: #334155;
+      white-space: pre-line;
+    }
+
+    .market-box,
+    .notice-box,
+    .summary-box {
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .summary-box {
+      background: #ffffff;
+      border: 1px solid #dbe7f5;
+    }
+
+    .market-box {
+      background: #eef6ff;
+      border: 1px solid #cfe3ff;
+    }
+
+    .notice-box {
+      background: #fff8e8;
+      border: 1px solid #f6df9c;
     }
 
     .sample-cars-grid {
@@ -348,20 +427,24 @@ html = r'''<!DOCTYPE html>
       color: var(--blue);
     }
 
+    .followup-wrap {
+      margin-top: 8px;
+    }
+
     .followup-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
       margin-top: 10px;
     }
 
     .followup-btn {
-      min-height: 46px;
+      min-height: 40px;
       border: 1px solid #bfdbfe;
       border-radius: 999px;
       background: #eff6ff;
       color: #1d4ed8;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       padding: 0 14px;
       transition: 0.15s ease;
@@ -373,41 +456,29 @@ html = r'''<!DOCTYPE html>
 
     .cta-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-top: 12px;
     }
 
-    .save-btn,
-    .kakao-btn,
-    .call-btn {
+    .primary-btn,
+    .secondary-btn {
       height: 52px;
       border-radius: 18px;
       font-size: 15px;
       font-weight: 900;
     }
 
-    .save-btn {
-      background: #eef2f7;
-      color: #0f172a;
+    .primary-btn {
+      background: var(--blue);
+      color: white;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.16);
     }
 
-    .kakao-btn {
-      background: var(--yellow);
-      color: #111827;
-    }
-
-    .call-btn {
+    .secondary-btn {
       background: white;
       border: 1px solid #dbe4f0;
       color: #0f172a;
-    }
-
-    .notice-box {
-      background: #fff8e8;
-      border: 1px solid #f6df9c;
-      border-radius: 18px;
-      padding: 14px;
     }
 
     .input-area {
@@ -434,6 +505,11 @@ html = r'''<!DOCTYPE html>
       font-size: 14px;
       font-weight: 800;
       padding: 0 14px;
+      transition: 0.15s ease;
+    }
+
+    .quick-btn:hover {
+      background: #dbeafe;
     }
 
     .composer {
@@ -483,7 +559,7 @@ html = r'''<!DOCTYPE html>
     }
 
     .summary-cards {
-      padding: 12px 0 54px;
+      padding: 14px 0 54px;
     }
 
     .summary-grid {
@@ -525,6 +601,138 @@ html = r'''<!DOCTYPE html>
       line-height: 1.7;
       font-size: 15px;
       min-height: 72px;
+    }
+
+    .footer {
+      padding: 24px 0 56px;
+      color: var(--sub);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: none;
+      background: rgba(15,23,42,0.5);
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(560px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: white;
+      border-radius: 26px;
+      box-shadow: 0 30px 80px rgba(15,23,42,0.28);
+      padding: 22px;
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .modal-desc {
+      margin: 8px 0 0;
+      color: var(--sub);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .modal-close {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: white;
+      border: 1px solid #dbe4f0;
+      color: #334155;
+      font-size: 18px;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      width: 100%;
+      height: 50px;
+      border: 1px solid #dbe4f0;
+      border-radius: 16px;
+      padding: 0 14px;
+      font-size: 15px;
+      outline: none;
+      background: white;
+    }
+
+    textarea.field {
+      height: 110px;
+      resize: vertical;
+      padding: 14px;
+    }
+
+    .field:focus {
+      border-color: #60a5fa;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .error-text {
+      color: var(--danger);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 18px;
+    }
+
+    .submit-btn {
+      height: 52px;
+      border-radius: 18px;
+      background: var(--blue);
+      color: white;
+      font-size: 15px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(37,99,235,0.16);
+    }
+
+    .success-box {
+      margin-top: 12px;
+      border-radius: 16px;
+      background: #effdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.7;
+      display: none;
+    }
+
+    .success-box.show {
+      display: block;
     }
 
     @media (max-width: 980px) {
@@ -572,6 +780,7 @@ html = r'''<!DOCTYPE html>
       }
       .chat-top-title { font-size: 24px; }
       .chat-top-desc { font-size: 13px; }
+      .top-chip { display: none; }
       .chat-body { padding: 14px; }
       .bubble {
         padding: 14px;
@@ -581,8 +790,14 @@ html = r'''<!DOCTYPE html>
       .result-card { margin-left: 0; }
       .followup-grid,
       .quick-grid,
-      .summary-grid {
+      .summary-grid,
+      .cta-grid {
         grid-template-columns: 1fr;
+      }
+      .followup-btn {
+        min-height: 36px;
+        font-size: 12px;
+        padding: 0 12px;
       }
       .composer {
         grid-template-columns: 1fr 48px;
@@ -604,6 +819,13 @@ html = r'''<!DOCTYPE html>
         border-radius: 20px;
       }
       .info-title { font-size: 20px; }
+      .modal-card {
+        border-radius: 22px;
+        padding: 18px;
+      }
+      .modal-title {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
@@ -617,8 +839,8 @@ html = r'''<!DOCTYPE html>
 
       <nav class="nav">
         <a href="#home">홈</a>
-        <a href="#flow">이용 방법</a>
-        <a href="#guides">구매 가이드</a>
+        <a href="#guides">이용 포인트</a>
+        <a href="#footer">문의</a>
       </nav>
     </div>
   </header>
@@ -634,17 +856,22 @@ html = r'''<!DOCTYPE html>
           </h1>
 
           <p class="hero-sub">
-            자유롭게 질문하면 AI가 방향을 정리하고,<br />
-            필요한 순간에만 상담으로 이어집니다.
+            예산, 차종, 브랜드, 용도를 편하게 입력하면<br />
+            카매치 AI가 추천 방향을 먼저 정리해드립니다.
           </p>
 
           <div class="guide-card">
-            <h2 class="guide-title">자유형 AI 상담 테스트</h2>
+            <h2 class="guide-title">실운영형 단일 HTML</h2>
             <p class="guide-text">
-              지금 화면은 실매물 연동 전 단계의 테스트 UI입니다.
-              사용자가 “3천만원으로 살 수 있는 SUV 추천해줘”처럼 직접 입력하면
-              AI 답변, 예시 차량, 후속 질문, 상담 CTA가 이어지도록 설계했습니다.
+              이 파일은 GitHub Pages / Vercel에 바로 올릴 수 있는 실제 운영형 구조입니다.
+              프론트는 단일 HTML로 유지하고, 백엔드는 Cloud Run <code>/chat</code> 엔드포인트를 호출하도록 만들었습니다.
             </p>
+
+            <ul class="guide-list">
+              <li>구체적인 질문은 바로 <code>/chat</code> 호출</li>
+              <li>브랜드만 입력돼도 백엔드가 2차 질문 구조를 반환하면 그대로 렌더링</li>
+              <li>문의하기는 이름/연락처/조건 요약을 저장하고 후속 상담으로 연결</li>
+            </ul>
           </div>
         </div>
 
@@ -654,21 +881,23 @@ html = r'''<!DOCTYPE html>
               <div class="chat-logo">🤖</div>
               <div>
                 <p class="chat-top-title">카매치 AI</p>
-                <p class="chat-top-desc">자유롭게 질문하면 예산대 시세와 예시 차량을 안내해드릴게요.</p>
+                <p class="chat-top-desc">조건을 자유롭게 입력해보세요. 엔터로 바로 전송됩니다.</p>
               </div>
             </div>
-            <div>⋮</div>
+            <div class="top-chip">실운영 연결형</div>
           </div>
 
           <div class="chat-body">
             <div class="messages" id="messages">
               <div class="message-row bot">
                 <div class="avatar">🤖</div>
-                <div class="bubble">
-안녕하세요! 👋
-예산, 차종, 용도, 중요 조건을 편하게 말씀해 주세요.
-예: “3천만원으로 살 수 있는 SUV 추천해줘”
-                </div>
+                <div class="bubble">안녕하세요! 👋
+예산, 차종, 브랜드, 용도 중 편한 것부터 말씀해 주세요.
+
+예시
+- 3천만원으로 살 수 있는 SUV 추천해줘
+- BMW 3천만원대 추천
+- 첫차로 부담 적은 중고차 알려줘</div>
               </div>
             </div>
 
@@ -676,8 +905,8 @@ html = r'''<!DOCTYPE html>
               <div class="quick-grid">
                 <button class="quick-btn" data-quick="3천만원으로 살 수 있는 SUV 추천해줘">3천만원 SUV 추천</button>
                 <button class="quick-btn" data-quick="첫차로 부담 적은 중고차 추천해줘">첫차 추천</button>
+                <button class="quick-btn" data-quick="BMW 추천해줘">BMW 추천</button>
                 <button class="quick-btn" data-quick="2천만원대 세단 중 유지비 적은 차 알려줘">2천만원대 세단</button>
-                <button class="quick-btn" data-quick="수입차도 포함해서 비교해줘">수입차 포함 비교</button>
               </div>
 
               <div class="composer">
@@ -686,7 +915,7 @@ html = r'''<!DOCTYPE html>
               </div>
 
               <div class="status-bar" id="statusText">
-                자유형 상담 테스트 중입니다. 현재는 실매물 연동 전 예시 결과를 보여줍니다.
+                백엔드 연결 전에는 CHAT_API_URL만 실제 Cloud Run 주소로 바꿔주세요.
               </div>
             </div>
           </div>
@@ -700,37 +929,74 @@ html = r'''<!DOCTYPE html>
           <span class="info-badge">자유입력</span>
           <h3 class="info-title">사용자가 직접 질문</h3>
           <p class="info-desc">
-            예산, 차종, 용도, 무사고 여부 같은 조건을 자유롭게 입력하는 흐름을 먼저 검증합니다.
+            예산, 차종, 브랜드, 무사고 여부 같은 조건을 자유롭게 입력하는 흐름을 기준으로 구성했습니다.
           </p>
         </article>
 
         <article class="info-card">
-          <span class="info-badge">예시 결과</span>
-          <h3 class="info-title">시세와 차량군 안내</h3>
+          <span class="info-badge">빠른 분기</span>
+          <h3 class="info-title">애매하면 한 번 더 질문</h3>
           <p class="info-desc">
-            실매물 연동 전 단계에서는 예산대에서 많이 비교되는 예시 차량과 시세 구간을 보여줍니다.
+            브랜드만 들어온 질문에도 백엔드에서 follow-up JSON을 반환하면 후속 질문 버튼으로 바로 이어집니다.
           </p>
         </article>
 
         <article class="info-card">
-          <span class="info-badge">상담 전환</span>
-          <h3 class="info-title">필요할 때만 문의</h3>
+          <span class="info-badge">전환 설계</span>
+          <h3 class="info-title">문의 저장 + 상담 연결</h3>
           <p class="info-desc">
-            AI 답변 이후 자연스럽게 후속 질문과 상담 신청, 카카오, 전화 상담 CTA로 연결됩니다.
+            문의하기 버튼에서 이름, 연락처, 마지막 질문과 AI 요약을 함께 저장하도록 묶었습니다.
           </p>
         </article>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
+  <footer class="footer" id="footer">
     <div class="container">
-      카매치 · 자유롭게 질문하고, 필요할 때만 편하게 상담할 수 있습니다.
+      카매치 테스트 페이지 · 단일 HTML 실운영 연결형
     </div>
   </footer>
 
+  <div class="modal-backdrop" id="inquiryModal">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div>
+          <h3 class="modal-title">문의하기</h3>
+          <p class="modal-desc">
+            마지막 질문과 AI 추천 요약을 함께 남겨 상담으로 이어지게 할 수 있습니다.
+          </p>
+        </div>
+        <button class="modal-close" id="closeModalBtn">✕</button>
+      </div>
+
+      <div class="form-grid">
+        <input class="field" id="nameInput" type="text" placeholder="이름" />
+        <input class="field" id="phoneInput" type="tel" placeholder="연락처 (예: 010-1234-5678)" />
+        <input class="field" id="budgetInput" type="text" placeholder="예산 (선택)" />
+        <input class="field" id="carTypeInput" type="text" placeholder="차종 / 브랜드 (선택)" />
+        <textarea class="field" id="memoInput" placeholder="추가 요청사항 (선택)"></textarea>
+      </div>
+
+      <div class="hint" id="summaryHint"></div>
+      <div class="error-text" id="formError"></div>
+
+      <button class="submit-btn" id="submitInquiryBtn">문의 저장하기</button>
+
+      <div class="success-box" id="successBox">
+        문의가 저장되었습니다. 실제 운영 시 여기서 카카오 상담, 전화 연결, CRM 전달까지 붙이면 됩니다.
+      </div>
+    </div>
+  </div>
+
   <script>
-    const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxYY8w-5Ytv6hIir4X-fSTuJ0GUnKxGCp2GvvU74k5NhCJqakEF9gGXfkJOsY-IfmHASA/exec';
+    const CONFIG = {
+      CHAT_API_URL: 'https://carmatch-ai-chat-api-155876561918.asia-northeast3.run.app/chat',
+      LOG_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxYY8w-5Ytv6hIir4X-fSTuJ0GUnKxGCp2GvvU74k5NhCJqakEF9gGXfkJOsY-IfmHASA/exec',
+      KAKAO_URL: '#',
+      PURCHASE_URL: '#',
+      PHONE_NUMBER: '010-7558-2039'
+    };
 
     const SESSION_KEY = 'carmatch_session_id';
     const ENTRY_SENT_KEY = 'carmatch_entry_sent';
@@ -740,6 +1006,22 @@ html = r'''<!DOCTYPE html>
     const sendBtn = document.getElementById('sendBtn');
     const statusText = document.getElementById('statusText');
     const quickButtons = document.querySelectorAll('[data-quick]');
+
+    const inquiryModal = document.getElementById('inquiryModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const submitInquiryBtn = document.getElementById('submitInquiryBtn');
+    const successBox = document.getElementById('successBox');
+    const formError = document.getElementById('formError');
+    const summaryHint = document.getElementById('summaryHint');
+
+    const nameInput = document.getElementById('nameInput');
+    const phoneInput = document.getElementById('phoneInput');
+    const budgetInput = document.getElementById('budgetInput');
+    const carTypeInput = document.getElementById('carTypeInput');
+    const memoInput = document.getElementById('memoInput');
+
+    let lastUserMessage = '';
+    let lastAiPayload = null;
 
     function getSessionId() {
       let sessionId = sessionStorage.getItem(SESSION_KEY);
@@ -752,190 +1034,139 @@ html = r'''<!DOCTYPE html>
 
     const sessionId = getSessionId();
 
-    async function sendLog(sheetName, rows) {
-      try {
-        await fetch(LOG_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ sheetName, rows })
-        });
-      } catch (e) {
-        console.error('log send failed', e);
-      }
-    }
-
-    async function pushEntryLog() {
-      const alreadySent = sessionStorage.getItem(ENTRY_SENT_KEY);
-      if (alreadySent) return;
-      sessionStorage.setItem(ENTRY_SENT_KEY, 'true');
-
-      await sendLog('entry_log', [
-        new Date().toISOString(),
-        sessionId,
-        window.location.pathname + window.location.hash,
-        document.referrer || 'direct',
-        navigator.userAgent,
-        window.innerWidth <= 768 ? 'mobile' : 'desktop'
-      ]);
-    }
-
-    async function pushPageViewLog() {
-      await sendLog('page_view_log', [
-        new Date().toISOString(),
-        sessionId,
-        'free_chat_consult',
-        window.location.href
-      ]);
-    }
-
-    async function pushConversionLog(type, question = '') {
-      await sendLog('conversion_log', [
-        new Date().toISOString(),
-        type,
-        question,
-        window.location.href,
-        navigator.userAgent
-      ]);
-    }
-
-    async function pushInquiryLog(name, phone, question) {
-      await sendLog('inquiry_log', [
-        new Date().toISOString(),
-        name,
-        phone,
-        question,
-        window.location.href
-      ]);
-    }
-
-    function appendUserMessage(text) {
-      const row = document.createElement('div');
-      row.className = 'message-row user';
-      row.innerHTML = `
-        <div class="avatar">🙂</div>
-        <div class="bubble">${escapeHtml(text)}</div>
-      `;
-      messages.appendChild(row);
-      scrollMessages();
-    }
-
-    function appendBotMessage(text) {
-      const row = document.createElement('div');
-      row.className = 'message-row bot';
-      row.innerHTML = `
-        <div class="avatar">🤖</div>
-        <div class="bubble">${escapeHtml(text)}</div>
-      `;
-      messages.appendChild(row);
-      scrollMessages();
-    }
-
-    function appendResultCard(payload) {
-      const wrap = document.createElement('div');
-      wrap.className = 'result-card';
-      wrap.innerHTML = `
-        <div class="result-section">
-          <p class="block-label">AI 답변</p>
-          <p class="block-copy">${escapeHtml(payload.answer)}</p>
-        </div>
-
-        <div class="result-section">
-          <p class="block-label">예산대 참고 시세</p>
-          <p class="block-copy">${escapeHtml(payload.range)}</p>
-        </div>
-
-        <div class="result-section">
-          <p class="block-label">예시 비교 차량</p>
-          <div class="sample-cars-grid">
-            ${payload.cars.map(car => `
-              <div class="sample-car-card">
-                <div class="sample-car-top">
-                  <div>
-                    <p class="sample-car-name">${escapeHtml(car.name)}</p>
-                    <p class="sample-car-desc">${escapeHtml(car.desc)}</p>
-                  </div>
-                  <span class="sample-chip">예시</span>
-                </div>
-                <div class="sample-car-points">${escapeHtml(car.points)}</div>
-                <div class="sample-car-price">${escapeHtml(car.price)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="result-section">
-          <p class="block-label">후속 질문</p>
-          <div class="followup-grid">
-            ${payload.followups.map(item => `
-              <button class="followup-btn" data-followup="${escapeAttr(item)}">${escapeHtml(item)}</button>
-            `).join('')}
-          </div>
-        </div>
-
-        <div class="result-section notice-box">
-          <p class="block-label">안내</p>
-          <p class="block-copy">${escapeHtml(payload.notice)}</p>
-        </div>
-
-        <div class="result-section">
-          <p class="block-label">상담 연결</p>
-          <div class="cta-grid">
-            <button class="save-btn">문의 저장 테스트</button>
-            <button class="kakao-btn">카카오톡으로 결과 받기</button>
-            <button class="call-btn">전화 상담 예약하기</button>
-          </div>
-        </div>
-      `;
-      messages.appendChild(wrap);
-      bindResultEvents(wrap, payload.originalQuestion);
-      scrollMessages();
-    }
-
-    function bindResultEvents(wrap, originalQuestion) {
-      wrap.querySelectorAll('.followup-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const text = btn.dataset.followup || '';
-          chatInput.value = text;
-          statusText.textContent = '후속 질문을 입력창에 반영했습니다.';
-          await pushConversionLog('select_followup_question', text);
-        });
-      });
-
-      const saveBtn = wrap.querySelector('.save-btn');
-      const kakaoBtn = wrap.querySelector('.kakao-btn');
-      const callBtn = wrap.querySelector('.call-btn');
-
-      saveBtn.addEventListener('click', async () => {
-        const name = prompt('이름을 입력해 주세요.', '') || '';
-        const phone = prompt('연락처를 입력해 주세요.', '') || '';
-
-        if (!name.trim() || !phone.trim()) {
-          statusText.textContent = '이름과 연락처를 입력해 주세요.';
-          return;
-        }
-
-        await pushInquiryLog(name.trim(), phone.trim(), originalQuestion);
-        await pushConversionLog('save_inquiry', originalQuestion);
-        statusText.textContent = '문의 저장 테스트가 기록되었습니다.';
-      });
-
-      kakaoBtn.addEventListener('click', async () => {
-        await pushConversionLog('click_kakao_consult', originalQuestion);
-        statusText.textContent = '카카오 상담 클릭 로그가 기록되었습니다.';
-      });
-
-      callBtn.addEventListener('click', async () => {
-        await pushConversionLog('click_call_consult', originalQuestion);
-        statusText.textContent = '전화 상담 클릭 로그가 기록되었습니다.';
-      });
+    function getDeviceType() {
+      return window.innerWidth < 768 ? 'mobile' : 'desktop';
     }
 
     function scrollMessages() {
       messages.scrollTop = messages.scrollHeight;
     }
 
-    function escapeHtml(value) {
-      return String(value)
+    async function sendSheetLog(sheetName, rows) {
+      if (!CONFIG.LOG_ENDPOINT || CONFIG.LOG_ENDPOINT === '#') return;
+      try {
+        await fetch(CONFIG.LOG_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ sheetName, rows })
+        });
+      } catch (error) {
+        console.error('log error', error);
+      }
+    }
+
+    function logEntryOnce() {
+      if (sessionStorage.getItem(ENTRY_SENT_KEY)) return;
+      sessionStorage.setItem(ENTRY_SENT_KEY, '1');
+      sendSheetLog('entry_log', [[
+        new Date().toISOString(),
+        sessionId,
+        location.href,
+        document.referrer || '',
+        navigator.userAgent,
+        getDeviceType()
+      ]]);
+    }
+
+    function logPageView() {
+      sendSheetLog('page_view_log', [[
+        new Date().toISOString(),
+        sessionId,
+        document.title,
+        location.href
+      ]]);
+    }
+
+    function logConversion(type, extra = {}) {
+      sendSheetLog('conversion_log', [[
+        new Date().toISOString(),
+        sessionId,
+        type,
+        lastUserMessage || '',
+        extra.budget || '',
+        extra.carType || '',
+        location.href
+      ]]);
+    }
+
+    function createMessageRow(role, text) {
+      const row = document.createElement('div');
+      row.className = 'message-row ' + role;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = role === 'bot' ? '🤖' : '🙂';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+
+      if (role === 'user') {
+        row.appendChild(bubble);
+        row.appendChild(avatar);
+      } else {
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+      }
+
+      messages.appendChild(row);
+      scrollMessages();
+    }
+
+    function createTypingRow() {
+      const row = document.createElement('div');
+      row.className = 'message-row bot';
+      row.id = 'typingRow';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messages.appendChild(row);
+      scrollMessages();
+    }
+
+    function removeTypingRow() {
+      const typingRow = document.getElementById('typingRow');
+      if (typingRow) typingRow.remove();
+    }
+
+    function normalizeApiPayload(payload) {
+      if (!payload || typeof payload !== 'object') {
+        return {
+          message: '응답 형식을 읽지 못했습니다.',
+          summary: '',
+          ai_answer: '',
+          market_range: '',
+          notice: '',
+          cars: [],
+          followups: [],
+          cta: ['문의하기', '구매하기']
+        };
+      }
+
+      return {
+        message: payload.message || payload.reply || payload.summary || '조건을 기준으로 추천 방향을 정리해드릴게요.',
+        summary: payload.summary || payload.one_line || payload.title || '',
+        ai_answer: payload.ai_answer || payload.answer || payload.description || '',
+        market_range: payload.market_range || payload.market || '',
+        notice: payload.notice || payload.tip || '',
+        cars: Array.isArray(payload.cars) ? payload.cars : [],
+        followups: Array.isArray(payload.followups) ? payload.followups : [],
+        cta: Array.isArray(payload.cta) ? payload.cta : ['문의하기', '구매하기'],
+        needs_followup: Boolean(payload.needs_followup),
+        raw: payload
+      };
+    }
+
+    function escapeHtml(str) {
+      return String(str)
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
@@ -943,133 +1174,312 @@ html = r'''<!DOCTYPE html>
         .replaceAll("'", '&#39;');
     }
 
-    function escapeAttr(value) {
-      return escapeHtml(value).replaceAll('\n', ' ');
+    function renderResultCard(data) {
+      lastAiPayload = data;
+
+      const card = document.createElement('div');
+      card.className = 'result-card';
+
+      let carsHtml = '';
+      if (data.cars && data.cars.length) {
+        carsHtml = `
+          <div class="result-section">
+            <p class="block-label">예시 비교 차량</p>
+            <div class="sample-cars-grid">
+              ${data.cars.map(car => `
+                <div class="sample-car-card">
+                  <div class="sample-car-top">
+                    <div>
+                      <h4 class="sample-car-name">${escapeHtml(car.name || '추천 차량')}</h4>
+                      <p class="sample-car-desc">${escapeHtml(car.desc || car.description || '')}</p>
+                    </div>
+                    <span class="sample-chip">${escapeHtml(car.price || car.tag || '비교')}</span>
+                  </div>
+                  <div class="sample-car-points">${escapeHtml(car.points || car.meta || '')}</div>
+                  ${car.extra || car.note ? `<div class="sample-car-price">${escapeHtml(car.extra || car.note)}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      let followupsHtml = '';
+      if (data.followups && data.followups.length) {
+        followupsHtml = `
+          <div class="result-section followup-wrap">
+            <p class="block-label">후속 질문</p>
+            <div class="followup-grid">
+              ${data.followups.map(text => `<button class="followup-btn" data-followup="${escapeHtml(text)}">${escapeHtml(text)}</button>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      const noticeBlock = data.notice ? `
+        <div class="result-section">
+          <p class="block-label">참고 포인트</p>
+          <div class="notice-box">
+            <p class="block-copy">${escapeHtml(data.notice)}</p>
+          </div>
+        </div>
+      ` : '';
+
+      const marketBlock = data.market_range ? `
+        <div class="result-section">
+          <p class="block-label">예산대 참고 시세</p>
+          <div class="market-box">
+            <p class="block-copy">${escapeHtml(data.market_range)}</p>
+          </div>
+        </div>
+      ` : '';
+
+      const summaryBlock = data.summary ? `
+        <div class="result-section">
+          <p class="block-label">한 줄 요약</p>
+          <div class="summary-box">
+            <p class="block-copy">${escapeHtml(data.summary)}</p>
+          </div>
+        </div>
+      ` : '';
+
+      const answerBlock = data.ai_answer ? `
+        <div class="result-section">
+          <p class="block-label">AI 답변</p>
+          <p class="block-copy">${escapeHtml(data.ai_answer)}</p>
+        </div>
+      ` : '';
+
+      card.innerHTML = `
+        ${summaryBlock}
+        ${answerBlock}
+        ${marketBlock}
+        ${carsHtml}
+        ${noticeBlock}
+        ${followupsHtml}
+        <div class="result-section">
+          <p class="block-label">다음 단계</p>
+          <div class="cta-grid">
+            <button class="primary-btn" id="inquiryBtn">문의하기</button>
+            <button class="secondary-btn" id="purchaseBtn">구매하기</button>
+          </div>
+        </div>
+      `;
+
+      messages.appendChild(card);
+      scrollMessages();
+
+      card.querySelectorAll('[data-followup]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const text = btn.textContent.trim();
+          chatInput.value = text;
+          chatInput.focus();
+          logConversion('click_followup');
+        });
+      });
+
+      card.querySelector('#inquiryBtn').addEventListener('click', () => {
+        openInquiryModal();
+        logConversion('click_inquiry');
+      });
+
+      card.querySelector('#purchaseBtn').addEventListener('click', () => {
+        logConversion('click_purchase');
+        if (CONFIG.PURCHASE_URL && CONFIG.PURCHASE_URL !== '#') {
+          window.open(CONFIG.PURCHASE_URL, '_blank');
+          return;
+        }
+        if (CONFIG.KAKAO_URL && CONFIG.KAKAO_URL !== '#') {
+          window.open(CONFIG.KAKAO_URL, '_blank');
+          return;
+        }
+        if (CONFIG.PHONE_NUMBER && CONFIG.PHONE_NUMBER !== '010-0000-0000') {
+          window.location.href = 'tel:' + CONFIG.PHONE_NUMBER.replace(/-/g, '');
+          return;
+        }
+        statusText.textContent = '구매하기 연결 URL 또는 전화번호를 설정해 주세요.';
+      });
     }
 
-    function normalizeQuestion(text) {
-      return text.trim().replace(/\s+/g, ' ');
-    }
+    function getFallbackPayload(query) {
+      const lowered = query.toLowerCase();
+      const brandKeywords = ['bmw', '벤츠', '아우디', '현대', '기아', '제네시스', '렉서스', '테슬라'];
+      const hasBrand = brandKeywords.some(v => lowered.includes(v));
+      const hasType = ['suv', '세단', '경차', '쿠페', '해치백'].some(v => lowered.includes(v));
 
-    function getMockResponse(question) {
-      const q = question.toLowerCase();
-
-      if (q.includes('3천') || q.includes('3000')) {
-        return {
-          answer: '3,000만원 전후 예산이면 국산 SUV와 준대형 세단은 선택폭이 넓고, 일부 수입 세단도 비교가 가능합니다. 실매물 연동 전 단계라 이 예산대에서 자주 비교되는 차량군을 예시로 안내해드립니다.',
-          range: '예시 비교 구간: 2,700만원 ~ 3,500만원+',
-          cars: [
-            { name: '2022 현대 그랜저', desc: '3,000만원대에서 많이 비교되는 준대형 세단', points: '승차감 / 옵션 / 출퇴근+가족용', price: '예시 시세 2,900~3,300만원' },
-            { name: '2021 기아 쏘렌토', desc: '가족용 SUV 수요가 높은 대표 비교군', points: '공간 / 적재성 / 활용도', price: '예시 시세 2,800~3,400만원' },
-            { name: '2019 BMW 5시리즈', desc: '수입 세단 비교군으로 자주 언급되는 예시', points: '브랜드 / 주행감 / 유지비 체크', price: '예시 시세 2,700~3,300만원' }
-          ],
-          followups: ['무사고 차량 위주로 다시 보기', 'SUV만 다시 비교해줘', '유지비 적은 차량으로 좁혀줘', '수입차 제외하고 다시 보여줘'],
-          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
-        };
+      if (hasBrand && !hasType) {
+        return normalizeApiPayload({
+          message: '브랜드 기준으로 보고 계시네요. 차종을 한 번 더 좁혀주시면 더 빨라집니다.',
+          summary: '브랜드만 입력된 질문입니다.',
+          ai_answer: '세단 / SUV / 해치백·쿠페 / 상관없음 중 하나를 더 알려주시면 바로 추천 방향을 정리할 수 있습니다.',
+          followups: ['세단으로 볼게', 'SUV로 볼게', '상관없어'],
+          needs_followup: true,
+          cta: ['문의하기', '구매하기']
+        });
       }
 
-      if (q.includes('첫차')) {
-        return {
-          answer: '첫차는 가격만 보기보다 유지비, 보험료, 고장 리스크까지 함께 보는 것이 중요합니다. 현재는 첫차 기준으로 많이 비교되는 예시 차량군을 먼저 정리해드릴게요.',
-          range: '예시 비교 구간: 700만원 ~ 2,000만원',
-          cars: [
-            { name: '2017 현대 아반떼 AD', desc: '첫차와 출퇴근용으로 많이 비교되는 준중형 세단', points: '가성비 / 유지비 / 무난한 실사용', price: '예시 시세 700~950만원' },
-            { name: '2021 현대 아반떼 CN7', desc: '연식과 상품성이 좋은 첫차 비교군', points: '출퇴근 / 연비 / 디자인', price: '예시 시세 1,500~1,950만원' },
-            { name: '2021 기아 셀토스', desc: '첫차인데 SUV를 원하는 경우 많이 비교되는 차종', points: 'SUV / 실용성 / 시야 확보', price: '예시 시세 1,700~2,000만원' }
-          ],
-          followups: ['보험료 부담 적은 차로 다시 보기', '세단만 다시 보여줘', 'SUV도 같이 비교해줘', '무사고 위주로 추천해줘'],
-          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
-        };
-      }
-
-      if (q.includes('수입차')) {
-        return {
-          answer: '수입차는 구매가보다 정비 이력과 유지비를 함께 보는 것이 중요합니다. 현재는 비교 흐름 테스트용으로 자주 언급되는 예시 수입차를 보여드립니다.',
-          range: '예시 비교 구간: 2,000만원 ~ 3,500만원',
-          cars: [
-            { name: '2019 BMW 5시리즈', desc: '브랜드 만족도와 주행감을 같이 보는 대표 예시', points: '주행감 / 브랜드 / 유지비 체크', price: '예시 시세 2,700~3,300만원' },
-            { name: '2018 벤츠 E클래스', desc: '중고 수입 세단 비교 시 자주 나오는 예시 차량군', points: '브랜드 / 승차감 / 정비 이력', price: '예시 시세 2,800~3,500만원' },
-            { name: '2020 BMW 3시리즈', desc: '수입차 입문형 비교군으로 자주 언급되는 모델', points: '세단 / 주행감 / 접근성', price: '예시 시세 2,300~3,000만원' }
-          ],
-          followups: ['국산차도 같이 비교해줘', '유지비 적은 수입차로 좁혀줘', '세단만 다시 보여줘', '보증 가능성 기준도 알려줘'],
-          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
-        };
-      }
-
-      if (q.includes('suv') || q.includes('suv') || q.includes('suv') || q.includes('SUV')) {
-        return {
-          answer: 'SUV는 가족용과 출퇴근 겸용 수요가 많아 연식, 주행거리, 적재공간, 유지비를 함께 비교하는 것이 좋습니다. 현재는 자주 비교되는 예시 SUV를 안내해드립니다.',
-          range: '예시 비교 구간: 1,700만원 ~ 3,400만원',
-          cars: [
-            { name: '2021 기아 셀토스', desc: '실속형 SUV로 많이 비교되는 대표 차종', points: '실용성 / 젊은층 선호 / 도심 활용', price: '예시 시세 1,700~2,000만원' },
-            { name: '2022 현대 투싼 NX4', desc: '가족용과 출퇴근 겸용으로 많이 비교되는 SUV', points: '디자인 / 활용도 / 공간', price: '예시 시세 2,400~2,900만원' },
-            { name: '2021 기아 쏘렌토 MQ4', desc: '패밀리 SUV 수요에서 많이 언급되는 예시', points: '공간 / 적재성 / 가족용', price: '예시 시세 2,700~3,100만원' }
-          ],
-          followups: ['무사고 SUV만 다시 보여줘', '2천만원대 SUV만 보고 싶어', '유지비 적은 SUV 추천해줘', '세단과 같이 비교해줘'],
-          notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
-        };
-      }
-
-      return {
-        answer: '입력하신 조건 기준으로 많이 비교되는 차량군을 먼저 정리했습니다. 현재는 실매물 연동 전 단계라 예시 시세와 예시 차량으로 흐름을 안내해드립니다.',
-        range: '예시 비교 구간: 1,000만원 ~ 3,000만원',
+      return normalizeApiPayload({
+        message: '조건을 기준으로 추천 방향을 먼저 정리해드릴게요.',
+        summary: '백엔드 URL이 비어 있어 임시 예시 응답을 보여주고 있습니다.',
+        ai_answer: '실제 운영 시에는 Cloud Run /chat 응답이 여기 그대로 표시됩니다. 현재 구조는 프론트 배포 테스트와 UI 확인용으로 유지됩니다.',
+        market_range: '예산 상단을 500~800만원 정도 열어두면 선택 폭이 더 자연스러울 수 있습니다.',
+        notice: 'CONFIG.CHAT_API_URL에 실제 Cloud Run /chat 주소를 넣으면 이 예시 응답 대신 백엔드 응답이 노출됩니다.',
         cars: [
-          { name: '2021 현대 아반떼 CN7', desc: '무난한 출퇴근용 비교군', points: '연비 / 디자인 / 실사용', price: '예시 시세 1,500~1,950만원' },
-          { name: '2022 현대 투싼 NX4', desc: 'SUV 비교 시 자주 나오는 대표 예시', points: '공간 / 활용도 / 디자인', price: '예시 시세 2,400~2,900만원' },
-          { name: '2021 현대 그랜저 IG', desc: '세단 선호 시 많이 비교되는 예시 차량군', points: '승차감 / 옵션 / 공간', price: '예시 시세 2,300~2,900만원' }
+          { name: '조건 맞춤 후보 1', desc: '실매물 연동 전 예시 카드', points: 'UI 구조 확인용 기본 카드입니다.', price: '상담 후 구체 안내' },
+          { name: '조건 맞춤 후보 2', desc: '차종 / 예산 기준 예시', points: '백엔드 연결 전까지 화면 검증에 사용합니다.', price: '상담 후 구체 안내' },
+          { name: '조건 맞춤 후보 3', desc: '대안 비교 카드', points: '실제 API 응답에서는 여기에 추천 차량이 들어갑니다.', price: '상담 후 구체 안내' }
         ],
-        followups: ['무사고 위주로 다시 보기', '예산 기준으로 다시 추천해줘', 'SUV만 다시 보여줘', '수입차도 포함해줘'],
-        notice: '현재 화면은 실매물 연동 전 테스트용 예시 결과입니다. 실제 상담에서는 조건에 맞는 실제 기준으로 다시 안내됩니다.'
-      };
+        followups: ['무사고 기준으로 다시 보기', '유지비 적은 순으로 보기', '같은 예산 다른 차종 비교하기'],
+        cta: ['문의하기', '구매하기']
+      });
     }
 
-    async function submitQuestion(text) {
-      const question = normalizeQuestion(text);
-      if (!question) {
-        statusText.textContent = '질문을 입력해 주세요.';
+    async function requestChat(message) {
+      const payload = {
+        sessionId,
+        message,
+        source: 'home_chat'
+      };
+
+      if (!CONFIG.CHAT_API_URL || CONFIG.CHAT_API_URL.includes('YOUR-CLOUD-RUN-URL')) {
+        return getFallbackPayload(message);
+      }
+
+      const response = await fetch(CONFIG.CHAT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('chat api error: ' + response.status);
+      }
+
+      const data = await response.json();
+      return normalizeApiPayload(data);
+    }
+
+    async function sendMessage(text) {
+      const value = (text || chatInput.value).trim();
+      if (!value) return;
+
+      lastUserMessage = value;
+      createMessageRow('user', value);
+      chatInput.value = '';
+      statusText.textContent = '카매치 AI가 질문을 해석 중입니다...';
+      createTypingRow();
+      logConversion('send_message');
+
+      try {
+        const result = await requestChat(value);
+        removeTypingRow();
+        createMessageRow('bot', result.message || '추천 방향을 정리해드릴게요.');
+        renderResultCard(result);
+        statusText.textContent = '응답이 완료되었습니다. 다른 조건으로 다시 질문해보세요.';
+      } catch (error) {
+        console.error(error);
+        removeTypingRow();
+        createMessageRow('bot', '현재 상담 응답이 잠시 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
+        statusText.textContent = '백엔드 연결 오류가 발생했습니다. CHAT_API_URL 또는 서버 상태를 확인해 주세요.';
+      }
+    }
+
+    function openInquiryModal() {
+      successBox.classList.remove('show');
+      formError.textContent = '';
+      inquiryModal.classList.add('show');
+      document.body.classList.add('modal-open');
+
+      const aiSummary = lastAiPayload?.summary || '';
+      const aiAnswer = lastAiPayload?.ai_answer || '';
+      summaryHint.textContent = lastUserMessage
+        ? `마지막 질문: ${lastUserMessage}${aiSummary ? ' · AI 요약: ' + aiSummary : aiAnswer ? ' · AI 요약: ' + aiAnswer.slice(0, 80) : ''}`
+        : '질문 내용이 없으면 기본 문의로 저장됩니다.';
+    }
+
+    function closeInquiryModal() {
+      inquiryModal.classList.remove('show');
+      document.body.classList.remove('modal-open');
+    }
+
+    function getBudgetGuess(text) {
+      const match = text.match(/(\d+\s*천|\d+\s*만원|\d{4,})/);
+      return match ? match[0].replace(/\s+/g, '') : '';
+    }
+
+    function getCarTypeGuess(text) {
+      const list = ['SUV', '세단', '경차', '쿠페', '해치백', 'BMW', '벤츠', '아우디', '현대', '기아', '제네시스', '렉서스'];
+      return list.find(v => text.toLowerCase().includes(v.toLowerCase())) || '';
+    }
+
+    async function submitInquiry() {
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.trim();
+      const budget = budgetInput.value.trim() || getBudgetGuess(lastUserMessage);
+      const carType = carTypeInput.value.trim() || getCarTypeGuess(lastUserMessage);
+      const memo = memoInput.value.trim();
+
+      if (!name || !phone) {
+        formError.textContent = '이름과 연락처는 꼭 입력해 주세요.';
         return;
       }
 
-      appendUserMessage(question);
-      chatInput.value = '';
-      statusText.textContent = '질문을 분석 중입니다.';
-      await pushConversionLog('send_free_chat_question', question);
+      formError.textContent = '';
+      logConversion('save_inquiry', { budget, carType });
 
-      const payload = getMockResponse(question);
+      const aiSummary = lastAiPayload?.summary || lastAiPayload?.ai_answer || '';
+      const rows = [[
+        new Date().toISOString(),
+        sessionId,
+        name,
+        phone,
+        budget,
+        carType,
+        lastUserMessage || '',
+        aiSummary,
+        memo,
+        location.href
+      ]];
 
-      appendBotMessage('질문 내용을 바탕으로 예산대 시세와 비교 차량군을 정리해드릴게요.');
-      appendResultCard({ ...payload, originalQuestion: question });
-
-      statusText.textContent = '자유형 상담 답변이 준비되었습니다.';
+      try {
+        await sendSheetLog('inquiry_log', rows);
+        successBox.classList.add('show');
+        nameInput.value = '';
+        phoneInput.value = '';
+        budgetInput.value = '';
+        carTypeInput.value = '';
+        memoInput.value = '';
+        statusText.textContent = '문의가 저장되었습니다.';
+      } catch (error) {
+        console.error(error);
+        formError.textContent = '문의 저장 중 오류가 발생했습니다.';
+      }
     }
 
-    sendBtn.addEventListener('click', () => {
-      submitQuestion(chatInput.value);
-    });
-
-    chatInput.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        submitQuestion(chatInput.value);
-      }
-    });
-
-    quickButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const text = button.dataset.quick || '';
-        chatInput.value = text;
-        submitQuestion(text);
+    quickButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sendMessage(btn.getAttribute('data-quick'));
       });
     });
 
-    window.addEventListener('load', async () => {
-      await pushEntryLog();
-      await pushPageViewLog();
+    sendBtn.addEventListener('click', () => sendMessage());
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
     });
+
+    closeModalBtn.addEventListener('click', closeInquiryModal);
+    inquiryModal.addEventListener('click', (e) => {
+      if (e.target === inquiryModal) closeInquiryModal();
+    });
+    submitInquiryBtn.addEventListener('click', submitInquiry);
+
+    logEntryOnce();
+    logPageView();
+    scrollMessages();
   </script>
 </body>
 </html>
-'''
-
-path = Path('/mnt/data/carmatch_free_ai_chat_ui.html')
-path.write_text(html, encoding='utf-8')
-print(f"Saved to {path}")
