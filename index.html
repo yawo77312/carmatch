@@ -980,8 +980,8 @@
 
   <script>
     const CONFIG = {
-      CHAT_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app',
-      INQUIRY_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app',
+      CHAT_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app/chat',
+      INQUIRY_API_URL: 'https://carmatch-ai-chat-api-aaspc427ca-du.a.run.app/inquiry',
       LOG_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxYY8w-5Ytv6hIir4X-fSTuJ0GUnKxGCp2GvvU74k5NhCJqakEF9gGXfkJOsY-IfmHASA/exec',
       PHONE_NUMBER: '010-7558-2039',
       CONTACT_DISPLAY: '010-7558-2039'
@@ -1380,12 +1380,12 @@ const answerBlock = answerText ? `
         removeTypingRow();
         createMessageRow('bot', result.message || '추천 방향을 정리해드릴게요.');
         renderResultCard(result);
-        statusText.textContent = '응답이 완료되었습니다. 다른 조건으로 다시 질문해보세요.';
+        statusText.textContent = '원하시는 조건이 더 있으면 이어서 말씀해 주세요.';
       } catch (error) {
         console.error(error);
         removeTypingRow();
-        createMessageRow('bot', '현재 상담 응답이 잠시 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
-        statusText.textContent = '상담 연결이 잠시 원활하지 않습니다. 잠시 후 다시 시도해 주세요.';
+        createMessageRow('bot', '답변을 준비 중입니다. 잠시만 기다려 주세요.');
+        statusText.textContent = '답변을 준비 중입니다. 잠시만 기다려 주세요.';
       }
     }
 
